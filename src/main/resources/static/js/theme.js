@@ -1,4 +1,4 @@
-const API = '/themes';
+const API = '/admin/themes';
 let isEditing = false;
 
 document.addEventListener('DOMContentLoaded', () => {

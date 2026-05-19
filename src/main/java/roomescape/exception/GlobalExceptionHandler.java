@@ -38,6 +38,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return buildProblem(HttpStatus.UNAUTHORIZED, ProblemType.UNAUTHORIZED, ex, request);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ProblemDetail handleForbidden(ForbiddenException ex, WebRequest request) {
+        return buildProblem(HttpStatus.FORBIDDEN, ProblemType.FORBIDDEN, ex, request);
+    }
+
     @ExceptionHandler(ConflictException.class)
     public ProblemDetail handleConflict(ConflictException ex, WebRequest request) {
         return buildProblem(HttpStatus.CONFLICT, ProblemType.CONFLICT, ex, request);

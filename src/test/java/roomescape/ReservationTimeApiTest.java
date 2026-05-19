@@ -1,6 +1,7 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import roomescape.exception.ProblemType;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -26,16 +28,24 @@ class ReservationTimeApiTest {
     private JdbcTemplate jdbcTemplate;
 
     private Long memberId;
+    private SessionFilter admin;
+    private SessionFilter user;
 
     @BeforeEach
     void setUp() {
         jdbcTemplate.update(
-                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
-                "seed@test.com", "password", "시드"
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "seed@test.com", "password", "시드", "USER"
         );
         memberId = jdbcTemplate.queryForObject(
                 "SELECT id FROM member WHERE email = ?", Long.class, "seed@test.com"
         );
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "admin@test.com", "password", "어드민", "ADMIN"
+        );
+        admin = login("admin@test.com", "password");
+        user = login("seed@test.com", "password");
     }
 
     @Test
@@ -53,9 +63,10 @@ class ReservationTimeApiTest {
         params.put("startAt", "10:00");
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201)
                 .body("id", notNullValue())
@@ -68,9 +79,10 @@ class ReservationTimeApiTest {
         params.put("startAt", "13:30");
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201);
 
@@ -88,15 +100,17 @@ class ReservationTimeApiTest {
         params.put("startAt", "20:00");
 
         Integer id = RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
 
         RestAssured.given().log().all()
-                .when().delete("/times/" + id)
+                .filter(admin)
+                .when().delete("/admin/times/" + id)
                 .then().log().all()
                 .statusCode(204);
 
@@ -113,9 +127,10 @@ class ReservationTimeApiTest {
         params.put("startAt", "25:00");
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(400);
     }
@@ -125,11 +140,40 @@ class ReservationTimeApiTest {
         Map<String, String> params = new HashMap<>();
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(400);
+    }
+
+    @Test
+    void 비_관리자가_시간_추가하면_403() {
+        Map<String, String> params = new HashMap<>();
+        params.put("startAt", "10:00");
+
+        RestAssured.given().log().all()
+                .filter(user)
+                .contentType(ContentType.JSON)
+                .body(params)
+                .when().post("/admin/times")
+                .then().log().all()
+                .statusCode(403)
+                .body("type", is(ProblemType.FORBIDDEN.uri().toString()));
+    }
+
+    @Test
+    void 로그인_없이_시간_추가하면_401() {
+        Map<String, String> params = new HashMap<>();
+        params.put("startAt", "10:00");
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(params)
+                .when().post("/admin/times")
+                .then().log().all()
+                .statusCode(401);
     }
 
     @Test
@@ -202,14 +246,26 @@ class ReservationTimeApiTest {
                 .body("times[0].reserved", is(false));
     }
 
+    private SessionFilter login(String email, String password) {
+        SessionFilter filter = new SessionFilter();
+        RestAssured.given()
+                .filter(filter)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", email, "password", password))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+        return filter;
+    }
+
     private Integer createTime(String startAt) {
         Map<String, String> params = new HashMap<>();
         params.put("startAt", startAt);
 
         return RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
@@ -222,9 +278,10 @@ class ReservationTimeApiTest {
         params.put("thumbnailImageUrl", thumbnailImageUrl);
 
         return RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");

@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import roomescape.auth.LoginMember;
 import roomescape.domain.Member;
@@ -34,14 +33,6 @@ public class ReservationController {
         this.reservationFacade = reservationFacade;
     }
 
-    @GetMapping
-    public ResponseEntity<ReservationResponses> search(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        return ResponseEntity.ok().body(reservationService.getReservationPage(page, size));
-    }
-
     @GetMapping("/me")
     public ResponseEntity<ReservationResponses> searchMine(@LoginMember Member member) {
         return ResponseEntity.ok().body(reservationService.getMyReservations(member));
@@ -56,13 +47,6 @@ public class ReservationController {
         ReservationResponse response = ReservationResponse.from(reservation);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        reservationService.deleteReservation(id);
-
-        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/me/{id}")

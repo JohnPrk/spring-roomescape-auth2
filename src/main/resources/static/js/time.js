@@ -1,4 +1,4 @@
-const API = '/times';
+const API = '/admin/times';
 let isEditing = false;
 
 document.addEventListener('DOMContentLoaded', () => {

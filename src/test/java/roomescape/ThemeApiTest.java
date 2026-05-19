@@ -1,6 +1,7 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,16 +26,24 @@ class ThemeApiTest {
     private JdbcTemplate jdbcTemplate;
 
     private Long memberId;
+    private SessionFilter admin;
+    private SessionFilter user;
 
     @BeforeEach
     void setUp() {
         jdbcTemplate.update(
-                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
-                "seed@test.com", "password", "시드"
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "seed@test.com", "password", "시드", "USER"
         );
         memberId = jdbcTemplate.queryForObject(
                 "SELECT id FROM member WHERE email = ?", Long.class, "seed@test.com"
         );
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "admin@test.com", "password", "어드민", "ADMIN"
+        );
+        admin = login("admin@test.com", "password");
+        user = login("seed@test.com", "password");
     }
 
     @Test
@@ -54,9 +63,10 @@ class ThemeApiTest {
         params.put("thumbnailImageUrl", "https://example.com/horror.jpg");
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201)
                 .body("id", notNullValue())
@@ -73,9 +83,10 @@ class ThemeApiTest {
         params.put("thumbnailImageUrl", "https://example.com/mystery.jpg");
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201);
 
@@ -161,9 +172,10 @@ class ThemeApiTest {
         params.put("thumbnailImageUrl", "https://example.com/horror.jpg");
 
         RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(400)
                 .body("type", is(ProblemType.VALIDATION_ERROR.uri().toString()));
@@ -177,15 +189,17 @@ class ThemeApiTest {
         params.put("thumbnailImageUrl", "https://example.com/sf.jpg");
 
         Integer id = RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
 
         RestAssured.given().log().all()
-                .when().delete("/themes/" + id)
+                .filter(admin)
+                .when().delete("/admin/themes/" + id)
                 .then().log().all()
                 .statusCode(204);
 
@@ -196,6 +210,42 @@ class ThemeApiTest {
                 .body("themes.size()", is(0));
     }
 
+    @Test
+    void 비_관리자가_테마_추가하면_403() {
+        Map<String, String> params = new HashMap<>();
+        params.put("name", "공포");
+        params.put("description", "무서운 테마");
+        params.put("thumbnailImageUrl", "https://example.com/horror.jpg");
+
+        RestAssured.given().log().all()
+                .filter(user)
+                .contentType(ContentType.JSON)
+                .body(params)
+                .when().post("/admin/themes")
+                .then().log().all()
+                .statusCode(403)
+                .body("type", is(ProblemType.FORBIDDEN.uri().toString()));
+    }
+
+    @Test
+    void 로그인_없이_테마_삭제하면_401() {
+        RestAssured.given().log().all()
+                .when().delete("/admin/themes/1")
+                .then().log().all()
+                .statusCode(401);
+    }
+
+    private SessionFilter login(String email, String password) {
+        SessionFilter filter = new SessionFilter();
+        RestAssured.given()
+                .filter(filter)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", email, "password", password))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+        return filter;
+    }
+
     private Integer createTheme(String name, String description, String thumbnailImageUrl) {
         Map<String, String> params = new HashMap<>();
         params.put("name", name);
@@ -203,9 +253,10 @@ class ThemeApiTest {
         params.put("thumbnailImageUrl", thumbnailImageUrl);
 
         return RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
@@ -216,9 +267,10 @@ class ThemeApiTest {
         params.put("startAt", startAt);
 
         return RestAssured.given().log().all()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");

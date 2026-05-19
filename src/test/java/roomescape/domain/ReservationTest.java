@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ReservationTest {
 
     private static final Theme ANY_THEME = new Theme(1L, "공포", "설명", "https://example.com/horror.jpg");
-    private static final Member ANY_MEMBER = new Member(1L, "user@test.com", "password", "브라운");
+    private static final Member ANY_MEMBER = new Member(1L, "user@test.com", "password", "브라운", Role.USER);
 
     @Test
     void 예약_시점이_현재보다_과거면_isPast가_true() {

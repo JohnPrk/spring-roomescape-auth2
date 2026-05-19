@@ -40,7 +40,7 @@ public class DbTest {
 
     @Test
     void DB_조회_API_전환() {
-        SessionFilter session = createMemberAndLogin();
+        SessionFilter adminSession = createAdminAndLogin();
         jdbcTemplate.update("INSERT INTO reservation_time (start_at) VALUES (?)", "15:40");
         Long timeId = jdbcTemplate.queryForObject("SELECT id from reservation_time limit 1", Long.class);
         jdbcTemplate.update(
@@ -55,8 +55,8 @@ public class DbTest {
         );
 
         List<Map> reservations = RestAssured.given().log().all()
-                .filter(session)
-                .when().get("/reservations")
+                .filter(adminSession)
+                .when().get("/admin/reservations")
                 .then().log().all()
                 .statusCode(200).extract()
                 .jsonPath().getList("reservations", Map.class);
@@ -68,7 +68,8 @@ public class DbTest {
 
     @Test
     void DB_추가_삭제_API_전환() {
-        SessionFilter session = createMemberAndLogin();
+        SessionFilter userSession = createMemberAndLogin();
+        SessionFilter adminSession = createAdminAndLogin();
         jdbcTemplate.update("INSERT INTO reservation_time (start_at) VALUES (?)", "10:00");
         Long timeId = jdbcTemplate.queryForObject("SELECT id from reservation_time limit 1", Long.class);
         jdbcTemplate.update(
@@ -83,7 +84,7 @@ public class DbTest {
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
-                .filter(session)
+                .filter(userSession)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -94,8 +95,8 @@ public class DbTest {
         assertThat(count).isEqualTo(1);
 
         RestAssured.given().log().all()
-                .filter(session)
-                .when().delete("/reservations/1")
+                .filter(adminSession)
+                .when().delete("/admin/reservations/1")
                 .then().log().all()
                 .statusCode(204);
 
@@ -105,14 +106,26 @@ public class DbTest {
 
     private SessionFilter createMemberAndLogin() {
         jdbcTemplate.update(
-                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
-                "user@test.com", "password", "사용자"
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "user@test.com", "password", "사용자", "USER"
         );
+        return login("user@test.com", "password");
+    }
+
+    private SessionFilter createAdminAndLogin() {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "admin@test.com", "password", "어드민", "ADMIN"
+        );
+        return login("admin@test.com", "password");
+    }
+
+    private SessionFilter login(String email, String password) {
         SessionFilter filter = new SessionFilter();
         RestAssured.given()
                 .filter(filter)
                 .contentType(ContentType.JSON)
-                .body(Map.of("email", "user@test.com", "password", "password"))
+                .body(Map.of("email", email, "password", password))
                 .when().post("/login/sessions")
                 .then().statusCode(200);
         return filter;

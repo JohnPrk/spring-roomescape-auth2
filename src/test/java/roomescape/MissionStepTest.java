@@ -22,28 +22,28 @@ public class MissionStepTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private SessionFilter session;
+    private SessionFilter userSession;
+    private SessionFilter adminSession;
 
     @BeforeEach
     void setUp() {
         jdbcTemplate.update(
-                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
-                "user@test.com", "password", "사용자"
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "user@test.com", "password", "사용자", "USER"
         );
-        session = new SessionFilter();
-        RestAssured.given()
-                .filter(session)
-                .contentType(ContentType.JSON)
-                .body(Map.of("email", "user@test.com", "password", "password"))
-                .when().post("/login/sessions")
-                .then().statusCode(200);
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "admin@test.com", "password", "어드민", "ADMIN"
+        );
+        userSession = login("user@test.com", "password");
+        adminSession = login("admin@test.com", "password");
     }
 
     @Test
     void 예약_조회() {
         RestAssured.given().log().all()
-                .filter(session)
-                .when().get("/reservations")
+                .filter(adminSession)
+                .when().get("/admin/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(0));
@@ -55,9 +55,10 @@ public class MissionStepTest {
         timeParams.put("startAt", "15:40");
 
         Integer timeId = RestAssured.given().log().all()
+                .filter(adminSession)
                 .contentType(ContentType.JSON)
                 .body(timeParams)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
@@ -68,9 +69,10 @@ public class MissionStepTest {
         themeParams.put("thumbnailImageUrl", "https://example.com/horror.jpg");
 
         Integer themeId = RestAssured.given().log().all()
+                .filter(adminSession)
                 .contentType(ContentType.JSON)
                 .body(themeParams)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
@@ -81,7 +83,7 @@ public class MissionStepTest {
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
-                .filter(session)
+                .filter(userSession)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -90,23 +92,34 @@ public class MissionStepTest {
                 .body("id", is(1));
 
         RestAssured.given().log().all()
-                .filter(session)
-                .when().get("/reservations")
+                .filter(adminSession)
+                .when().get("/admin/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(1));
 
         RestAssured.given().log().all()
-                .filter(session)
-                .when().delete("/reservations/1")
+                .filter(adminSession)
+                .when().delete("/admin/reservations/1")
                 .then().log().all()
                 .statusCode(204);
 
         RestAssured.given().log().all()
-                .filter(session)
-                .when().get("/reservations")
+                .filter(adminSession)
+                .when().get("/admin/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(0));
+    }
+
+    private SessionFilter login(String email, String password) {
+        SessionFilter filter = new SessionFilter();
+        RestAssured.given()
+                .filter(filter)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", email, "password", password))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+        return filter;
     }
 }

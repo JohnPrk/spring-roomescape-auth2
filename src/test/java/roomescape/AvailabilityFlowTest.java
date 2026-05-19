@@ -22,21 +22,21 @@ class AvailabilityFlowTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private SessionFilter session;
+    private SessionFilter userSession;
+    private SessionFilter adminSession;
 
     @BeforeEach
     void setUp() {
         jdbcTemplate.update(
-                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
-                "user@test.com", "password", "사용자"
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "user@test.com", "password", "사용자", "USER"
         );
-        session = new SessionFilter();
-        RestAssured.given()
-                .filter(session)
-                .contentType(ContentType.JSON)
-                .body(Map.of("email", "user@test.com", "password", "password"))
-                .when().post("/login/sessions")
-                .then().statusCode(200);
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                "admin@test.com", "password", "어드민", "ADMIN"
+        );
+        userSession = login("user@test.com", "password");
+        adminSession = login("admin@test.com", "password");
     }
 
     @Test
@@ -62,7 +62,7 @@ class AvailabilityFlowTest {
         reservation.put("themeId", themeId);
 
         RestAssured.given().log().all()
-                .filter(session)
+                .filter(userSession)
                 .contentType(ContentType.JSON)
                 .body(reservation)
                 .when().post("/reservations")
@@ -79,14 +79,26 @@ class AvailabilityFlowTest {
                 .body("times.find { it.id == " + time12 + " }.reserved", is(false));
     }
 
+    private SessionFilter login(String email, String password) {
+        SessionFilter filter = new SessionFilter();
+        RestAssured.given()
+                .filter(filter)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", email, "password", password))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+        return filter;
+    }
+
     private Integer createTime(String startAt) {
         Map<String, String> params = new HashMap<>();
         params.put("startAt", startAt);
 
         return RestAssured.given().log().all()
+                .filter(adminSession)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");
@@ -99,9 +111,10 @@ class AvailabilityFlowTest {
         params.put("thumbnailImageUrl", thumbnailImageUrl);
 
         return RestAssured.given().log().all()
+                .filter(adminSession)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201)
                 .extract().jsonPath().get("id");

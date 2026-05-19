@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.domain.Member;
 import roomescape.domain.ReservationTime;
+import roomescape.domain.Role;
 import roomescape.domain.Theme;
 import roomescape.dto.ReservationRequest;
 import roomescape.exception.BusinessRuleViolationException;
@@ -40,7 +41,7 @@ class ReservationFacadeTest {
 
     @BeforeEach
     void setUp() {
-        member = memberRepository.save(new Member(null, "user@test.com", "password", "브라운"));
+        member = memberRepository.save(new Member(null, "user@test.com", "password", "브라운", Role.USER));
     }
 
     @Test

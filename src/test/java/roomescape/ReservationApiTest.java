@@ -27,22 +27,25 @@ class ReservationApiTest {
 
     private SessionFilter minwook;
     private SessionFilter tinue;
+    private SessionFilter admin;
     private Long minwookId;
     private Long tinueId;
 
     @BeforeEach
     void setUp() {
-        minwookId = insertMember("minwook@test.com", "password", "민욱");
-        tinueId = insertMember("tinue@test.com", "password", "티뉴");
+        minwookId = insertMember("minwook@test.com", "password", "민욱", "USER");
+        tinueId = insertMember("tinue@test.com", "password", "티뉴", "USER");
+        insertMember("admin@test.com", "password", "어드민", "ADMIN");
         minwook = login("minwook@test.com", "password");
         tinue = login("tinue@test.com", "password");
+        admin = login("admin@test.com", "password");
     }
 
     @Test
     void 예약_조회_빈목록() {
         RestAssured.given().log().all()
-                .filter(minwook)
-                .when().get("/reservations")
+                .filter(admin)
+                .when().get("/admin/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(0))
@@ -83,8 +86,8 @@ class ReservationApiTest {
                 .then().statusCode(201);
 
         RestAssured.given().log().all()
-                .filter(minwook)
-                .when().get("/reservations")
+                .filter(admin)
+                .when().get("/admin/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(1))
@@ -106,14 +109,14 @@ class ReservationApiTest {
                 .extract().jsonPath().get("id");
 
         RestAssured.given().log().all()
-                .filter(minwook)
-                .when().delete("/reservations/" + reservationId)
+                .filter(admin)
+                .when().delete("/admin/reservations/" + reservationId)
                 .then().log().all()
                 .statusCode(204);
 
         RestAssured.given()
-                .filter(minwook)
-                .when().get("/reservations")
+                .filter(admin)
+                .when().get("/admin/reservations")
                 .then()
                 .statusCode(200)
                 .body("reservations.size()", is(0))
@@ -134,8 +137,8 @@ class ReservationApiTest {
         }
 
         RestAssured.given().log().all()
-                .filter(minwook)
-                .when().get("/reservations?page=0&size=3")
+                .filter(admin)
+                .when().get("/admin/reservations?page=0&size=3")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(3))
@@ -158,8 +161,8 @@ class ReservationApiTest {
         }
 
         RestAssured.given().log().all()
-                .filter(minwook)
-                .when().get("/reservations?page=1&size=3")
+                .filter(admin)
+                .when().get("/admin/reservations?page=1&size=3")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(2))
@@ -303,6 +306,37 @@ class ReservationApiTest {
                 .then().log().all()
                 .statusCode(401)
                 .body("type", is(ProblemType.UNAUTHORIZED.uri().toString()));
+    }
+
+    @Test
+    void 비_관리자가_전체_예약_조회하면_403() {
+        RestAssured.given().log().all()
+                .filter(minwook)
+                .when().get("/admin/reservations")
+                .then().log().all()
+                .statusCode(403)
+                .body("type", is(ProblemType.FORBIDDEN.uri().toString()));
+    }
+
+    @Test
+    void 로그인_없이_전체_예약_조회하면_401() {
+        RestAssured.given().log().all()
+                .when().get("/admin/reservations")
+                .then().log().all()
+                .statusCode(401);
+    }
+
+    @Test
+    void 비_관리자가_예약_강제_삭제하면_403() {
+        Integer timeId = createTime("11:00");
+        Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
+
+        RestAssured.given().log().all()
+                .filter(tinue)
+                .when().delete("/admin/reservations/" + reservationId)
+                .then().log().all()
+                .statusCode(403);
     }
 
     @Test
@@ -600,10 +634,10 @@ class ReservationApiTest {
         );
     }
 
-    private Long insertMember(String email, String password, String name) {
+    private Long insertMember(String email, String password, String name, String role) {
         jdbcTemplate.update(
-                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
-                email, password, name
+                "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
+                email, password, name, role
         );
         return jdbcTemplate.queryForObject(
                 "SELECT id FROM member WHERE email = ?",
@@ -626,9 +660,10 @@ class ReservationApiTest {
     private Integer createTime(String startAt) {
         Map<String, String> params = Map.of("startAt", startAt);
         return RestAssured.given()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/times")
+                .when().post("/admin/times")
                 .then().statusCode(201)
                 .extract().jsonPath().get("id");
     }
@@ -640,9 +675,10 @@ class ReservationApiTest {
                 "thumbnailImageUrl", thumbnailImageUrl
         );
         return RestAssured.given()
+                .filter(admin)
                 .contentType(ContentType.JSON)
                 .body(params)
-                .when().post("/themes")
+                .when().post("/admin/themes")
                 .then().statusCode(201)
                 .extract().jsonPath().get("id");
     }

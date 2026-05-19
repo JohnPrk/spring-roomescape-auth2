@@ -9,6 +9,7 @@ import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
+import roomescape.domain.Role;
 import roomescape.domain.Theme;
 
 import java.sql.Date;
@@ -27,7 +28,8 @@ public class ReservationJdbcRepository implements ReservationRepository {
                    th.description as theme_description,
                    th.thumbnail_image_url as theme_thumbnail,
                    m.id as member_id, m.email as member_email,
-                   m.password as member_password, m.name as member_name
+                   m.password as member_password, m.name as member_name,
+                   m.role as member_role
             FROM reservation as r
             INNER JOIN reservation_time as t ON r.time_id = t.id
             INNER JOIN theme as th ON r.theme_id = th.id
@@ -55,7 +57,8 @@ public class ReservationJdbcRepository implements ReservationRepository {
                 rs.getLong("member_id"),
                 rs.getString("member_email"),
                 rs.getString("member_password"),
-                rs.getString("member_name")
+                rs.getString("member_name"),
+                Role.valueOf(rs.getString("member_role"))
         );
         return new Reservation(
                 rs.getLong("reservation_id"),

@@ -5,6 +5,7 @@ import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
+import roomescape.domain.Role;
 import roomescape.domain.Theme;
 
 import java.time.LocalDate;
@@ -18,7 +19,7 @@ class ReservationsTest {
     private static final Theme THEME = new Theme(1L, "공포", "무서운 테마", "https://example.com/img.jpg");
     private static final ReservationTime TIME_10 = new ReservationTime(1L, LocalTime.of(10, 0));
     private static final ReservationTime TIME_11 = new ReservationTime(2L, LocalTime.of(11, 0));
-    private static final Member ANY_MEMBER = new Member(1L, "user@test.com", "password", "브라운");
+    private static final Member ANY_MEMBER = new Member(1L, "user@test.com", "password", "브라운", Role.USER);
 
     @Test
     void 예약된_시간은_occupied_true를_반환한다() {

@@ -8,17 +8,20 @@ public class Member {
     private final String email;
     private final String password;
     private final String name;
+    private final Role role;
 
     public Member(
             Long id,
             String email,
             String password,
-            String name
+            String name,
+            Role role
     ) {
         this.id = id;
         this.email = email;
         this.password = password;
         this.name = name;
+        this.role = role;
     }
 
     public Long getId() {
@@ -37,15 +40,27 @@ public class Member {
         return name;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Member member = (Member) o;
-        return Objects.equals(getId(), member.getId()) && Objects.equals(getEmail(), member.getEmail()) && Objects.equals(getPassword(), member.getPassword()) && Objects.equals(getName(), member.getName());
+        return Objects.equals(getId(), member.getId())
+                && Objects.equals(getEmail(), member.getEmail())
+                && Objects.equals(getPassword(), member.getPassword())
+                && Objects.equals(getName(), member.getName())
+                && getRole() == member.getRole();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getEmail(), getPassword(), getName());
+        return Objects.hash(getId(), getEmail(), getPassword(), getName(), getRole());
     }
 }
