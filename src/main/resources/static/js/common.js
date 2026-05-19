@@ -98,6 +98,22 @@ async function logout() {
 }
 
 document.addEventListener('DOMContentLoaded', initAuthNav);
+document.addEventListener('DOMContentLoaded', showAccessErrorIfAny);
+
+function showAccessErrorIfAny() {
+    const params = new URLSearchParams(location.search);
+    const error = params.get('error');
+    if (!error) return;
+
+    if (error === 'admin_only') {
+        alert('관리자 권한이 필요한 페이지입니다.');
+    }
+
+    params.delete('error');
+    const remaining = params.toString();
+    const newUrl = location.pathname + (remaining ? `?${remaining}` : '') + location.hash;
+    history.replaceState(null, '', newUrl);
+}
 
 function getErrorMessage(error, fallback) {
     if (error instanceof HttpError) {

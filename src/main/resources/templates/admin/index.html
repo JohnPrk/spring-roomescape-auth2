@@ -11,6 +11,7 @@
     <a class="brand" th:href="@{/admin}">방탈출 어드민</a>
     <nav class="nav">
         <a th:href="@{/}">사용자 페이지</a>
+        <a th:href="@{/admin/reservation}">예약</a>
         <a th:href="@{/admin/theme}">테마</a>
         <a th:href="@{/admin/time}">시간</a>
     </nav>
@@ -20,8 +21,12 @@
 <main class="container">
     <section class="hero">
         <h1>방탈출 어드민</h1>
-        <p>테마와 예약 가능한 시간대를 관리하세요.</p>
+        <p>예약·테마·시간을 한 곳에서 관리하세요.</p>
         <div class="hero-grid">
+            <a class="hero-card" th:href="@{/admin/reservation}">
+                <h3>예약 관리</h3>
+                <p>전체 예약을 확인하고 강제로 삭제합니다.</p>
+            </a>
             <a class="hero-card" th:href="@{/admin/theme}">
                 <h3>테마 관리</h3>
                 <p>방탈출 테마를 등록하고 관리합니다.</p>

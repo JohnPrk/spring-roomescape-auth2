@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>예약하기 · 방탈출</title>
+    <title>예약 관리 · 방탈출 어드민</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
 <header class="topbar">
-    <a class="brand" th:href="@{/}">방탈출 예약</a>
+    <a class="brand" th:href="@{/admin}">방탈출 어드민</a>
     <nav class="nav">
-        <a th:href="@{/}">홈</a>
-        <a class="active" th:href="@{/reservation}">예약</a>
-        <a th:href="@{/my}">내 예약</a>
-        <a th:href="@{/popular}">인기 테마</a>
-        <a th:href="@{/admin}">어드민</a>
+        <a th:href="@{/}">사용자 페이지</a>
+        <a class="active" th:href="@{/admin/reservation}">예약</a>
+        <a th:href="@{/admin/theme}">테마</a>
+        <a th:href="@{/admin/time}">시간</a>
     </nav>
     <div class="nav-auth" id="nav-auth"></div>
 </header>
@@ -22,10 +21,9 @@
 <main class="container">
     <div class="page-header">
         <div>
-            <h1>예약 현황</h1>
-            <p class="subtitle">예약 현황을 확인하고 새 예약을 등록할 수 있습니다.</p>
+            <h1>예약 관리</h1>
+            <p class="subtitle">전체 예약을 확인하고 강제로 삭제할 수 있습니다.</p>
         </div>
-        <button id="add-button" class="btn btn-primary" type="button">+ 예약 추가</button>
     </div>
 
     <section class="card">

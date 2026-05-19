@@ -9,6 +9,8 @@ import roomescape.exception.ForbiddenException;
 import roomescape.exception.UnauthorizedException;
 import roomescape.repository.MemberRepository;
 
+import java.io.IOException;
+
 @Component
 public class AdminInterceptor implements HandlerInterceptor {
 
@@ -22,14 +24,22 @@ public class AdminInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         Long memberId = SessionStore.findMemberId(request.getSession(false));
         if (memberId == null) {
+            if (BrowserRequest.isHtmlRequest(request)) {
+                response.sendRedirect(BrowserRequest.loginRedirectUrl(request));
+                return false;
+            }
             throw new UnauthorizedException(UNAUTHENTICATED);
         }
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new UnauthorizedException(UNAUTHENTICATED));
         if (!member.isAdmin()) {
+            if (BrowserRequest.isHtmlRequest(request)) {
+                response.sendRedirect("/?error=admin_only");
+                return false;
+            }
             throw new ForbiddenException(NOT_ADMIN);
         }
         return true;
