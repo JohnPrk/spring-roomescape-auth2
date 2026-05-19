@@ -1,31 +1,22 @@
 const API = '/reservations/me';
 const TIMES_API = '/times';
 
-let currentName = '';
 let isEditing = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('search-form').addEventListener('submit', handleSubmit);
+    refresh();
 });
-
-async function handleSubmit(event) {
-    event.preventDefault();
-
-    const name = document.getElementById('name-input').value.trim();
-    if (!name) {
-        alert('이름을 입력해주세요.');
-        return;
-    }
-
-    currentName = name;
-    await refresh();
-}
 
 async function refresh() {
     try {
-        const data = await fetchJson(`${API}?name=${encodeURIComponent(currentName)}`);
+        const data = await fetchJson(API);
         render(data.reservations);
     } catch (error) {
+        if (error.status === 401) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/login';
+            return;
+        }
         console.error('내 예약 조회 실패:', error);
         alert(getErrorMessage(error, '내 예약 조회에 실패했습니다.'));
     }
@@ -158,13 +149,18 @@ async function saveEdit(id, date, timeId) {
     }
 
     try {
-        await fetchJson(`${API}/${id}?name=${encodeURIComponent(currentName)}`, {
+        await fetchJson(`${API}/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ date, timeId: Number(timeId) })
         });
         await refresh();
     } catch (error) {
+        if (error.status === 401) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/login';
+            return;
+        }
         console.error('예약 변경 실패:', error);
         alert(getErrorMessage(error, '예약 변경에 실패했습니다.'));
     }
@@ -174,9 +170,14 @@ async function cancelReservation(id) {
     if (!confirm('예약을 취소하시겠습니까?')) return;
 
     try {
-        await fetchJson(`${API}/${id}?name=${encodeURIComponent(currentName)}`, { method: 'DELETE' });
+        await fetchJson(`${API}/${id}`, { method: 'DELETE' });
         await refresh();
     } catch (error) {
+        if (error.status === 401) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/login';
+            return;
+        }
         console.error('예약 취소 실패:', error);
         alert(getErrorMessage(error, '예약 취소에 실패했습니다.'));
     }

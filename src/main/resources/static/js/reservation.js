@@ -64,8 +64,8 @@ function startAdd() {
 
     const row = tbody.insertRow(0);
     row.insertCell().textContent = '';
+    row.insertCell().textContent = '';
 
-    const nameInput = createInput('text', '예: 민욱');
     const themeSelect = createSelect();
     const dateInput = createInput('date');
     const timeSelect = createSelect();
@@ -89,7 +89,6 @@ function startAdd() {
         refreshAvailableTimes(dateInput.value, themeSelect.value, timeSelect);
     });
 
-    row.insertCell().appendChild(nameInput);
     row.insertCell().appendChild(themeSelect);
     row.insertCell().appendChild(dateInput);
     row.insertCell().appendChild(timeSelect);
@@ -99,7 +98,6 @@ function startAdd() {
 
     actions.appendChild(createButton('저장', 'btn-primary', async () => {
         await saveRow(
-            nameInput.value,
             dateInput.value,
             themeSelect.value,
             timeSelect.value,
@@ -174,8 +172,8 @@ function isReserved(time) {
     return time.reserved === true;
 }
 
-async function saveRow(name, date, themeId, timeId, timeSelect) {
-    if (!name.trim() || !date || !themeId || !timeId) {
+async function saveRow(date, themeId, timeId, timeSelect) {
+    if (!date || !themeId || !timeId) {
         alert('모든 항목을 입력해주세요.');
         return;
     }
@@ -191,7 +189,6 @@ async function saveRow(name, date, themeId, timeId, timeSelect) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name,
                 date,
                 themeId: Number(themeId),
                 timeId: Number(timeId)
@@ -201,6 +198,11 @@ async function saveRow(name, date, themeId, timeId, timeSelect) {
         isEditing = false;
         refresh();
     } catch (error) {
+        if (error.status === 401) {
+            alert('로그인이 필요합니다.');
+            window.location.href = '/login';
+            return;
+        }
         console.error('예약 추가 실패:', error);
         alert(getErrorMessage(error, '예약 추가에 실패했습니다.'));
     }
