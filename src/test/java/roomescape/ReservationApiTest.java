@@ -1,7 +1,9 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,9 +25,23 @@ class ReservationApiTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private SessionFilter minwook;
+    private SessionFilter tinue;
+    private Long minwookId;
+    private Long tinueId;
+
+    @BeforeEach
+    void setUp() {
+        minwookId = insertMember("minwook@test.com", "password", "민욱");
+        tinueId = insertMember("tinue@test.com", "password", "티뉴");
+        minwook = login("minwook@test.com", "password");
+        tinue = login("tinue@test.com", "password");
+    }
+
     @Test
     void 예약_조회_빈목록() {
         RestAssured.given().log().all()
+                .filter(minwook)
                 .when().get("/reservations")
                 .then().log().all()
                 .statusCode(200)
@@ -40,13 +56,10 @@ class ReservationApiTest {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-08-05");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
+        Map<String, Object> params = reservationBody("2026-08-05", timeId, themeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -62,26 +75,21 @@ class ReservationApiTest {
         Integer timeId = createTime("14:00");
         Integer themeId = createTheme("추리", "단서를 찾아라", "https://example.com/mystery.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "티뉴");
-        params.put("date", "2026-09-01");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
-        RestAssured.given().log().all()
+        RestAssured.given()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-09-01", timeId, themeId))
                 .when().post("/reservations")
-                .then().log().all()
-                .statusCode(201);
+                .then().statusCode(201);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .when().get("/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(1))
                 .body("totalCount", is(1))
-                .body("reservations[0].name", is("티뉴"));
+                .body("reservations[0].name", is("민욱"));
     }
 
     @Test
@@ -89,28 +97,24 @@ class ReservationApiTest {
         Integer timeId = createTime("18:00");
         Integer themeId = createTheme("SF", "우주에서 탈출", "https://example.com/sf.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "브라운");
-        params.put("date", "2026-10-10");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
-        Integer reservationId = RestAssured.given().log().all()
+        Integer reservationId = RestAssured.given()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-10-10", timeId, themeId))
                 .when().post("/reservations")
-                .then().log().all()
-                .statusCode(201)
+                .then().statusCode(201)
                 .extract().jsonPath().get("id");
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .when().delete("/reservations/" + reservationId)
                 .then().log().all()
                 .statusCode(204);
 
-        RestAssured.given().log().all()
+        RestAssured.given()
+                .filter(minwook)
                 .when().get("/reservations")
-                .then().log().all()
+                .then()
                 .statusCode(200)
                 .body("reservations.size()", is(0))
                 .body("totalCount", is(0));
@@ -122,19 +126,15 @@ class ReservationApiTest {
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
         for (int i = 1; i <= 5; i++) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("name", "사용자" + i);
-            params.put("date", "2026-08-0" + i);
-            params.put("timeId", timeId);
-            params.put("themeId", themeId);
-
             RestAssured.given()
+                    .filter(minwook)
                     .contentType(ContentType.JSON)
-                    .body(params)
+                    .body(reservationBody("2026-08-0" + i, timeId, themeId))
                     .when().post("/reservations");
         }
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .when().get("/reservations?page=0&size=3")
                 .then().log().all()
                 .statusCode(200)
@@ -150,19 +150,15 @@ class ReservationApiTest {
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
         for (int i = 1; i <= 5; i++) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("name", "사용자" + i);
-            params.put("date", "2026-08-0" + i);
-            params.put("timeId", timeId);
-            params.put("themeId", themeId);
-
             RestAssured.given()
+                    .filter(minwook)
                     .contentType(ContentType.JSON)
-                    .body(params)
+                    .body(reservationBody("2026-08-0" + i, timeId, themeId))
                     .when().post("/reservations");
         }
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .when().get("/reservations?page=1&size=3")
                 .then().log().all()
                 .statusCode(200)
@@ -177,15 +173,10 @@ class ReservationApiTest {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-02-31");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-02-31", timeId, themeId))
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400);
@@ -196,53 +187,10 @@ class ReservationApiTest {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-02-29");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
-                .when().post("/reservations")
-                .then().log().all()
-                .statusCode(400);
-    }
-
-    @Test
-    void 빈_이름으로_예약하면_400() {
-        Integer timeId = createTime("11:00");
-        Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "");
-        params.put("date", "2026-08-05");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
-        RestAssured.given().log().all()
-                .contentType(ContentType.JSON)
-                .body(params)
-                .when().post("/reservations")
-                .then().log().all()
-                .statusCode(400)
-                .body("type", is(ProblemType.VALIDATION_ERROR.uri().toString()));
-    }
-
-    @Test
-    void 이름이_누락된_요청으로_예약하면_400() {
-        Integer timeId = createTime("11:00");
-        Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("date", "2026-08-05");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
-        RestAssured.given().log().all()
-                .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-02-29", timeId, themeId))
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400);
@@ -253,11 +201,11 @@ class ReservationApiTest {
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
         params.put("date", "2026-08-05");
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -270,15 +218,10 @@ class ReservationApiTest {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-13-01");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-13-01", timeId, themeId))
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(400);
@@ -289,19 +232,17 @@ class ReservationApiTest {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-08-05");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
+        Map<String, Object> params = reservationBody("2026-08-05", timeId, themeId);
 
         RestAssured.given()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
                 .then().statusCode(201);
 
         RestAssured.given().log().all()
+                .filter(tinue)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -315,15 +256,10 @@ class ReservationApiTest {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2020-01-01");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2020-01-01", timeId, themeId))
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(422);
@@ -333,15 +269,10 @@ class ReservationApiTest {
     void 존재하지_않는_시간_ID로_예약하면_404() {
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-08-05");
-        params.put("timeId", 9999);
-        params.put("themeId", themeId);
-
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-08-05", 9999, themeId))
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(404);
@@ -351,31 +282,41 @@ class ReservationApiTest {
     void 존재하지_않는_테마_ID로_예약하면_404() {
         Integer timeId = createTime("11:00");
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "민욱");
-        params.put("date", "2026-08-05");
-        params.put("timeId", timeId);
-        params.put("themeId", 9999);
-
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody("2026-08-05", timeId, 9999))
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(404);
     }
 
     @Test
-    void 본인_예약_조회는_이름이_일치하는_예약만_반환한다() {
+    void 로그인_없이_예약_생성하면_401() {
+        Integer timeId = createTime("11:00");
+        Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(reservationBody("2026-08-05", timeId, themeId))
+                .when().post("/reservations")
+                .then().log().all()
+                .statusCode(401)
+                .body("type", is(ProblemType.UNAUTHORIZED.uri().toString()));
+    }
+
+    @Test
+    void 본인_예약_조회는_로그인한_사용자의_예약만_반환한다() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
 
-        createReservation("민욱", "2026-08-05", timeId, themeId);
+        createReservation(minwook, "2026-08-05", timeId, themeId);
         Integer time2 = createTime("15:00");
-        createReservation("티뉴", "2026-08-05", time2, themeId);
+        createReservation(tinue, "2026-08-05", time2, themeId);
 
         RestAssured.given().log().all()
-                .when().get("/reservations/me?name=민욱")
+                .filter(minwook)
+                .when().get("/reservations/me")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(1))
@@ -385,46 +326,50 @@ class ReservationApiTest {
     @Test
     void 본인_예약이_없으면_빈_목록이_반환된다() {
         RestAssured.given().log().all()
-                .when().get("/reservations/me?name=민욱")
+                .filter(minwook)
+                .when().get("/reservations/me")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(0));
     }
 
     @Test
-    void 이름_파라미터가_없으면_400() {
+    void 로그인_없이_내_예약_조회하면_401() {
         RestAssured.given().log().all()
                 .when().get("/reservations/me")
                 .then().log().all()
-                .statusCode(400);
+                .statusCode(401);
     }
 
     @Test
     void 본인_예약_취소는_204를_반환한다() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         RestAssured.given().log().all()
-                .when().delete("/reservations/me/" + reservationId + "?name=민욱")
+                .filter(minwook)
+                .when().delete("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(204);
 
         RestAssured.given()
-                .when().get("/reservations/me?name=민욱")
+                .filter(minwook)
+                .when().get("/reservations/me")
                 .then()
                 .statusCode(200)
                 .body("reservations.size()", is(0));
     }
 
     @Test
-    void 다른_사람_이름으로_취소하면_401() {
+    void 다른_사용자로_본인_예약을_취소하면_401() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         RestAssured.given().log().all()
-                .when().delete("/reservations/me/" + reservationId + "?name=티뉴")
+                .filter(tinue)
+                .when().delete("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(401);
     }
@@ -432,7 +377,8 @@ class ReservationApiTest {
     @Test
     void 존재하지_않는_예약을_취소하면_404() {
         RestAssured.given().log().all()
-                .when().delete("/reservations/me/9999?name=민욱")
+                .filter(minwook)
+                .when().delete("/reservations/me/9999")
                 .then().log().all()
                 .statusCode(404);
     }
@@ -441,24 +387,13 @@ class ReservationApiTest {
     void 지난_예약을_취소하면_422() {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Long reservationId = insertPastReservation("민욱", "2020-01-01", timeId, themeId);
+        Long reservationId = insertPastReservation(minwookId, "2020-01-01", timeId, themeId);
 
         RestAssured.given().log().all()
-                .when().delete("/reservations/me/" + reservationId + "?name=민욱")
-                .then().log().all()
-                .statusCode(422);
-    }
-
-    @Test
-    void 취소_요청에_이름_파라미터가_없으면_400() {
-        Integer timeId = createTime("13:00");
-        Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
-
-        RestAssured.given().log().all()
+                .filter(minwook)
                 .when().delete("/reservations/me/" + reservationId)
                 .then().log().all()
-                .statusCode(400);
+                .statusCode(422);
     }
 
     @Test
@@ -466,16 +401,17 @@ class ReservationApiTest {
         Integer timeId = createTime("13:00");
         Integer newTimeId = createTime("15:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-09-01");
         body.put("timeId", newTimeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(200);
     }
@@ -484,35 +420,37 @@ class ReservationApiTest {
     void 같은_슬롯으로_변경해도_충돌로_보지_않는다() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-08-05");
         body.put("timeId", timeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(200);
     }
 
     @Test
-    void 다른_사람_이름으로_변경하면_401() {
+    void 다른_사용자로_본인_예약을_변경하면_401() {
         Integer timeId = createTime("13:00");
         Integer newTimeId = createTime("15:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-09-01");
         body.put("timeId", newTimeId);
 
         RestAssured.given().log().all()
+                .filter(tinue)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=티뉴")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(401)
                 .body("type", is(ProblemType.UNAUTHORIZED.uri().toString()));
@@ -527,9 +465,10 @@ class ReservationApiTest {
         body.put("timeId", timeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/9999?name=민욱")
+                .when().put("/reservations/me/9999")
                 .then().log().all()
                 .statusCode(404)
                 .body("type", is(ProblemType.NOT_FOUND.uri().toString()));
@@ -540,17 +479,18 @@ class ReservationApiTest {
         Integer timeId = createTime("13:00");
         Integer otherTimeId = createTime("15:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
-        createReservation("티뉴", "2026-08-05", otherTimeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
+        createReservation(tinue, "2026-08-05", otherTimeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-08-05");
         body.put("timeId", otherTimeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(409);
     }
@@ -559,16 +499,17 @@ class ReservationApiTest {
     void 지난_시각으로_변경하면_422() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2020-01-01");
         body.put("timeId", timeId);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(422)
                 .body("type", is(ProblemType.BUSINESS_RULE_VIOLATION.uri().toString()));
@@ -578,52 +519,35 @@ class ReservationApiTest {
     void 이미_지난_예약을_변경하면_422() {
         Integer timeId = createTime("11:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Long reservationId = insertPastReservation("민욱", "2020-01-01", timeId, themeId);
+        Long reservationId = insertPastReservation(minwookId, "2020-01-01", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-09-01");
         body.put("timeId", timeId);
 
         RestAssured.given().log().all()
-                .contentType(ContentType.JSON)
-                .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
-                .then().log().all()
-                .statusCode(422);
-    }
-
-    @Test
-    void 변경_요청에_이름_파라미터가_없으면_400() {
-        Integer timeId = createTime("13:00");
-        Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("date", "2026-09-01");
-        body.put("timeId", timeId);
-
-        RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
                 .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
-                .statusCode(400)
-                .body("type", is(ProblemType.BAD_REQUEST.uri().toString()));
+                .statusCode(422);
     }
 
     @Test
     void 변경_요청에_timeId가_누락되면_400() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-09-01");
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(400);
     }
@@ -632,71 +556,94 @@ class ReservationApiTest {
     void 변경_요청의_새_시간_ID가_존재하지_않으면_404() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
-        Integer reservationId = createReservation("민욱", "2026-08-05", timeId, themeId);
+        Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("date", "2026-09-01");
         body.put("timeId", 9999);
 
         RestAssured.given().log().all()
+                .filter(minwook)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .when().put("/reservations/me/" + reservationId + "?name=민욱")
+                .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
                 .statusCode(404);
     }
 
-    private Long insertPastReservation(String name, String date, Integer timeId, Integer themeId) {
-        jdbcTemplate.update(
-                "INSERT INTO reservation (name, date, time_id, theme_id) VALUES (?, ?, ?, ?)",
-                name, LocalDate.parse(date), timeId, themeId
-        );
-        return jdbcTemplate.queryForObject(
-                "SELECT id FROM reservation WHERE name = ? AND date = ?",
-                Long.class, name, LocalDate.parse(date)
-        );
-    }
-
-    private Integer createReservation(String name, String date, Integer timeId, Integer themeId) {
+    private Map<String, Object> reservationBody(String date, Integer timeId, Integer themeId) {
         Map<String, Object> params = new HashMap<>();
-        params.put("name", name);
         params.put("date", date);
         params.put("timeId", timeId);
         params.put("themeId", themeId);
+        return params;
+    }
 
+    private Integer createReservation(SessionFilter session, String date, Integer timeId, Integer themeId) {
         return RestAssured.given()
+                .filter(session)
                 .contentType(ContentType.JSON)
-                .body(params)
+                .body(reservationBody(date, timeId, themeId))
                 .when().post("/reservations")
                 .then().statusCode(201)
                 .extract().jsonPath().get("id");
     }
 
-    private Integer createTime(String startAt) {
-        Map<String, String> params = new HashMap<>();
-        params.put("startAt", startAt);
+    private Long insertPastReservation(Long memberId, String date, Integer timeId, Integer themeId) {
+        jdbcTemplate.update(
+                "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)",
+                LocalDate.parse(date), timeId, themeId, memberId
+        );
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM reservation WHERE member_id = ? AND date = ?",
+                Long.class, memberId, LocalDate.parse(date)
+        );
+    }
 
-        return RestAssured.given().log().all()
+    private Long insertMember(String email, String password, String name) {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
+                email, password, name
+        );
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM member WHERE email = ?",
+                Long.class, email
+        );
+    }
+
+    private SessionFilter login(String email, String password) {
+        SessionFilter filter = new SessionFilter();
+        Map<String, String> body = Map.of("email", email, "password", password);
+        RestAssured.given()
+                .filter(filter)
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+        return filter;
+    }
+
+    private Integer createTime(String startAt) {
+        Map<String, String> params = Map.of("startAt", startAt);
+        return RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/times")
-                .then().log().all()
-                .statusCode(201)
+                .then().statusCode(201)
                 .extract().jsonPath().get("id");
     }
 
     private Integer createTheme(String name, String description, String thumbnailImageUrl) {
-        Map<String, String> params = new HashMap<>();
-        params.put("name", name);
-        params.put("description", description);
-        params.put("thumbnailImageUrl", thumbnailImageUrl);
-
-        return RestAssured.given().log().all()
+        Map<String, String> params = Map.of(
+                "name", name,
+                "description", description,
+                "thumbnailImageUrl", thumbnailImageUrl
+        );
+        return RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/themes")
-                .then().log().all()
-                .statusCode(201)
+                .then().statusCode(201)
                 .extract().jsonPath().get("id");
     }
 }

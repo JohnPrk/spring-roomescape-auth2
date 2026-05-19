@@ -5,9 +5,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import roomescape.domain.Member;
 import roomescape.domain.Reservation;
-import roomescape.domain.Reservations;
 import roomescape.domain.ReservationTime;
+import roomescape.domain.Reservations;
 import roomescape.domain.Theme;
 
 import java.sql.Date;
@@ -19,22 +20,25 @@ import java.util.Optional;
 @Repository
 public class ReservationJdbcRepository implements ReservationRepository {
 
+    private static final String SELECT_BASE = """
+            SELECT r.id as reservation_id, r.date,
+                   t.id as time_id, t.start_at as time_value,
+                   th.id as theme_id, th.name as theme_name,
+                   th.description as theme_description,
+                   th.thumbnail_image_url as theme_thumbnail,
+                   m.id as member_id, m.email as member_email,
+                   m.password as member_password, m.name as member_name
+            FROM reservation as r
+            INNER JOIN reservation_time as t ON r.time_id = t.id
+            INNER JOIN theme as th ON r.theme_id = th.id
+            INNER JOIN member as m ON r.member_id = m.id
+            """;
+
     private final JdbcTemplate jdbcTemplate;
 
     public ReservationJdbcRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-
-    private static final String SELECT_BASE = """
-            SELECT r.id as reservation_id, r.name, r.date,
-                   t.id as time_id, t.start_at as time_value,
-                   th.id as theme_id, th.name as theme_name,
-                   th.description as theme_description,
-                   th.thumbnail_image_url as theme_thumbnail
-            FROM reservation as r
-            INNER JOIN reservation_time as t ON r.time_id = t.id
-            INNER JOIN theme as th ON r.theme_id = th.id
-            """;
 
     private final RowMapper<Reservation> reservationRowMapper = (rs, rowNum) -> {
         ReservationTime time = new ReservationTime(
@@ -47,9 +51,15 @@ public class ReservationJdbcRepository implements ReservationRepository {
                 rs.getString("theme_description"),
                 rs.getString("theme_thumbnail")
         );
+        Member member = new Member(
+                rs.getLong("member_id"),
+                rs.getString("member_email"),
+                rs.getString("member_password"),
+                rs.getString("member_name")
+        );
         return new Reservation(
                 rs.getLong("reservation_id"),
-                rs.getString("name"),
+                member,
                 rs.getDate("date").toLocalDate(),
                 time,
                 theme
@@ -79,22 +89,22 @@ public class ReservationJdbcRepository implements ReservationRepository {
     }
 
     public Reservation save(Reservation reservation) {
-        String sql = "INSERT INTO reservation (name, date, time_id, theme_id) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
-            ps.setString(1, reservation.getName());
-            ps.setDate(2, Date.valueOf(reservation.getDate()));
-            ps.setLong(3, reservation.getTime().getId());
-            ps.setLong(4, reservation.getTheme().getId());
+            ps.setDate(1, Date.valueOf(reservation.getDate()));
+            ps.setLong(2, reservation.getTime().getId());
+            ps.setLong(3, reservation.getTheme().getId());
+            ps.setLong(4, reservation.getMember().getId());
             return ps;
         }, keyHolder);
 
         long id = keyHolder.getKey().longValue();
         return new Reservation(
                 id,
-                reservation.getName(),
+                reservation.getMember(),
                 reservation.getDate(),
                 reservation.getTime(),
                 reservation.getTheme()
@@ -128,8 +138,8 @@ public class ReservationJdbcRepository implements ReservationRepository {
         return new Reservations(jdbcTemplate.query(sql, reservationRowMapper, date, themeId));
     }
 
-    public List<Reservation> findByName(String name) {
-        String sql = SELECT_BASE + " WHERE r.name = ? ORDER BY r.date DESC, time_value ASC";
-        return jdbcTemplate.query(sql, reservationRowMapper, name);
+    public List<Reservation> findByMemberId(Long memberId) {
+        String sql = SELECT_BASE + " WHERE r.member_id = ? ORDER BY r.date DESC, time_value ASC";
+        return jdbcTemplate.query(sql, reservationRowMapper, memberId);
     }
 }

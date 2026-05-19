@@ -2,6 +2,7 @@ package roomescape.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.Reservations;
 import roomescape.dto.ReservationResponses;
@@ -34,8 +35,8 @@ public class ReservationService {
         return ReservationResponses.from(reservations, totalCount, page, size);
     }
 
-    public ReservationResponses getMyReservations(String name) {
-        List<Reservation> reservations = reservationRepository.findByName(name);
+    public ReservationResponses getMyReservations(Member member) {
+        List<Reservation> reservations = reservationRepository.findByMemberId(member.getId());
         return ReservationResponses.from(reservations, reservations.size(), 0, reservations.size());
     }
 
@@ -43,10 +44,10 @@ public class ReservationService {
         return reservationRepository.existsByTimeId(timeId);
     }
 
-    public Reservation findMyReservation(Long id, String name) {
+    public Reservation findMyReservation(Long id, Member member) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(RESERVATION_NOT_FOUND_FORMAT.formatted(id)));
-        if (!reservation.getName().equals(name)) {
+        if (!reservation.isOwnedBy(member)) {
             throw new UnauthorizedException(NOT_OWNER);
         }
         return reservation;
@@ -68,8 +69,8 @@ public class ReservationService {
     }
 
     @Transactional
-    public void cancelMyReservation(Long id, String name) {
-        Reservation reservation = findMyReservation(id, name);
+    public void cancelMyReservation(Long id, Member member) {
+        Reservation reservation = findMyReservation(id, member);
 
         if (reservation.isPast(LocalDateTime.now())) {
             throw new BusinessRuleViolationException(PAST_RESERVATION_CANCEL_REJECTED);

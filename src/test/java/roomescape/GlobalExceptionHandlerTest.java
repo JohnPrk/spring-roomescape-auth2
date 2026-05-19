@@ -1,11 +1,17 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.exception.ProblemType;
+
+import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
@@ -13,9 +19,30 @@ import static org.hamcrest.Matchers.is;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class GlobalExceptionHandlerTest {
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private SessionFilter session;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
+                "user@test.com", "password", "사용자"
+        );
+        session = new SessionFilter();
+        RestAssured.given()
+                .filter(session)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "user@test.com", "password", "password"))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+    }
+
     @Test
     void 경로_변수_타입_불일치는_400() {
         RestAssured.given().log().all()
+                .filter(session)
                 .when().delete("/reservations/abc")
                 .then().log().all()
                 .statusCode(400)
@@ -34,6 +61,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void 지원하지_않는_미디어_타입은_415() {
         RestAssured.given().log().all()
+                .filter(session)
                 .contentType(ContentType.TEXT)
                 .body("not json")
                 .when().post("/reservations")

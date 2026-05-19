@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.auth.LoginMember;
+import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.dto.ReservationRequest;
 import roomescape.dto.ReservationResponse;
@@ -41,13 +43,16 @@ public class ReservationController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ReservationResponses> searchMine(@RequestParam String name) {
-        return ResponseEntity.ok().body(reservationService.getMyReservations(name));
+    public ResponseEntity<ReservationResponses> searchMine(@LoginMember Member member) {
+        return ResponseEntity.ok().body(reservationService.getMyReservations(member));
     }
 
     @PostMapping
-    public ResponseEntity<ReservationResponse> add(@RequestBody @Valid ReservationRequest request) {
-        Reservation reservation = reservationFacade.addReservation(request);
+    public ResponseEntity<ReservationResponse> add(
+            @RequestBody @Valid ReservationRequest request,
+            @LoginMember Member member
+    ) {
+        Reservation reservation = reservationFacade.addReservation(request, member);
         ReservationResponse response = ReservationResponse.from(reservation);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -61,8 +66,8 @@ public class ReservationController {
     }
 
     @DeleteMapping("/me/{id}")
-    public ResponseEntity<Void> cancelMine(@PathVariable Long id, @RequestParam String name) {
-        reservationService.cancelMyReservation(id, name);
+    public ResponseEntity<Void> cancelMine(@PathVariable Long id, @LoginMember Member member) {
+        reservationService.cancelMyReservation(id, member);
 
         return ResponseEntity.noContent().build();
     }
@@ -70,10 +75,10 @@ public class ReservationController {
     @PutMapping("/me/{id}")
     public ResponseEntity<ReservationResponse> updateMine(
             @PathVariable Long id,
-            @RequestParam String name,
+            @LoginMember Member member,
             @RequestBody @Valid ReservationUpdateRequest request
     ) {
-        Reservation updated = reservationFacade.updateMyReservation(id, name, request);
+        Reservation updated = reservationFacade.updateMyReservation(id, member, request);
 
         return ResponseEntity.ok(ReservationResponse.from(updated));
     }

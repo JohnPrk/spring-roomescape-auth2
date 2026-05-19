@@ -2,6 +2,7 @@ package roomescape.facade;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
@@ -60,12 +61,12 @@ public class ReservationFacade {
     }
 
     @Transactional
-    public Reservation addReservation(ReservationRequest request) {
+    public Reservation addReservation(ReservationRequest request, Member member) {
         ReservationTime reservationTime = reservationTimeService.findById(request.timeId());
         Theme theme = themeService.findById(request.themeId());
 
         Reservation reservation = new Reservation(
-                request.name(),
+                member,
                 request.date(),
                 reservationTime,
                 theme
@@ -84,8 +85,8 @@ public class ReservationFacade {
     }
 
     @Transactional
-    public Reservation updateMyReservation(Long id, String name, ReservationUpdateRequest request) {
-        Reservation existing = reservationService.findMyReservation(id, name);
+    public Reservation updateMyReservation(Long id, Member member, ReservationUpdateRequest request) {
+        Reservation existing = reservationService.findMyReservation(id, member);
         LocalDateTime now = LocalDateTime.now();
 
         if (existing.isPast(now)) {
@@ -96,7 +97,7 @@ public class ReservationFacade {
 
         Reservation updated = new Reservation(
                 id,
-                existing.getName(),
+                existing.getMember(),
                 request.date(),
                 newTime,
                 existing.getTheme()

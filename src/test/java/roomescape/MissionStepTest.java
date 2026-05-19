@@ -1,9 +1,13 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.HashMap;
@@ -15,9 +19,30 @@ import static org.hamcrest.Matchers.is;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class MissionStepTest {
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private SessionFilter session;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
+                "user@test.com", "password", "사용자"
+        );
+        session = new SessionFilter();
+        RestAssured.given()
+                .filter(session)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "user@test.com", "password", "password"))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+    }
+
     @Test
     void 예약_조회() {
         RestAssured.given().log().all()
+                .filter(session)
                 .when().get("/reservations")
                 .then().log().all()
                 .statusCode(200)
@@ -51,12 +76,12 @@ public class MissionStepTest {
                 .extract().jsonPath().get("id");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "브라운");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+                .filter(session)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -65,17 +90,20 @@ public class MissionStepTest {
                 .body("id", is(1));
 
         RestAssured.given().log().all()
+                .filter(session)
                 .when().get("/reservations")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(1));
 
         RestAssured.given().log().all()
+                .filter(session)
                 .when().delete("/reservations/1")
                 .then().log().all()
                 .statusCode(204);
 
         RestAssured.given().log().all()
+                .filter(session)
                 .when().get("/reservations")
                 .then().log().all()
                 .statusCode(200)

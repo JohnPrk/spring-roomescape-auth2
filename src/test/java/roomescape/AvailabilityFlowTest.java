@@ -1,9 +1,13 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.HashMap;
@@ -15,6 +19,26 @@ import static org.hamcrest.Matchers.is;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class AvailabilityFlowTest {
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private SessionFilter session;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
+                "user@test.com", "password", "사용자"
+        );
+        session = new SessionFilter();
+        RestAssured.given()
+                .filter(session)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "user@test.com", "password", "password"))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+    }
+
     @Test
     void 가용시간_조회_예약생성_재조회시_예약된_시간이_빠진다() {
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
@@ -23,7 +47,6 @@ class AvailabilityFlowTest {
         Integer time12 = createTime("12:00");
         String date = "2026-08-05";
 
-        // 1) 가용 시간 조회 - 모두 reserved=false
         RestAssured.given().log().all()
                 .when().get("/times/availability?date=" + date + "&themeId=" + themeId)
                 .then().log().all()
@@ -33,21 +56,19 @@ class AvailabilityFlowTest {
                 .body("times.find { it.id == " + time11 + " }.reserved", is(false))
                 .body("times.find { it.id == " + time12 + " }.reserved", is(false));
 
-        // 2) 11시로 예약 생성
         Map<String, Object> reservation = new HashMap<>();
-        reservation.put("name", "브라운");
         reservation.put("date", date);
         reservation.put("timeId", time11);
         reservation.put("themeId", themeId);
 
         RestAssured.given().log().all()
+                .filter(session)
                 .contentType(ContentType.JSON)
                 .body(reservation)
                 .when().post("/reservations")
                 .then().log().all()
                 .statusCode(201);
 
-        // 3) 가용 시간 재조회 - 11시만 reserved=true
         RestAssured.given().log().all()
                 .when().get("/times/availability?date=" + date + "&themeId=" + themeId)
                 .then().log().all()

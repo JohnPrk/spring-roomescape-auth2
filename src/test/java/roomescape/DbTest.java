@@ -1,6 +1,7 @@
 package roomescape;
 
 import io.restassured.RestAssured;
+import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ public class DbTest {
 
     @Test
     void DB_조회_API_전환() {
+        SessionFilter session = createMemberAndLogin();
         jdbcTemplate.update("INSERT INTO reservation_time (start_at) VALUES (?)", "15:40");
         Long timeId = jdbcTemplate.queryForObject("SELECT id from reservation_time limit 1", Long.class);
         jdbcTemplate.update(
@@ -46,12 +48,14 @@ public class DbTest {
                 "공포", "무서운 테마", "https://example.com/horror.jpg"
         );
         Long themeId = jdbcTemplate.queryForObject("SELECT id from theme limit 1", Long.class);
+        Long memberId = jdbcTemplate.queryForObject("SELECT id from member limit 1", Long.class);
         jdbcTemplate.update(
-                "INSERT INTO reservation (name, date, time_id, theme_id) VALUES (?, ?, ?, ?)",
-                "브라운", "2023-08-05", timeId, themeId
+                "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)",
+                "2023-08-05", timeId, themeId, memberId
         );
 
         List<Map> reservations = RestAssured.given().log().all()
+                .filter(session)
                 .when().get("/reservations")
                 .then().log().all()
                 .statusCode(200).extract()
@@ -64,6 +68,7 @@ public class DbTest {
 
     @Test
     void DB_추가_삭제_API_전환() {
+        SessionFilter session = createMemberAndLogin();
         jdbcTemplate.update("INSERT INTO reservation_time (start_at) VALUES (?)", "10:00");
         Long timeId = jdbcTemplate.queryForObject("SELECT id from reservation_time limit 1", Long.class);
         jdbcTemplate.update(
@@ -73,12 +78,12 @@ public class DbTest {
         Long themeId = jdbcTemplate.queryForObject("SELECT id from theme limit 1", Long.class);
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "브라운");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+                .filter(session)
                 .contentType(ContentType.JSON)
                 .body(params)
                 .when().post("/reservations")
@@ -89,11 +94,27 @@ public class DbTest {
         assertThat(count).isEqualTo(1);
 
         RestAssured.given().log().all()
+                .filter(session)
                 .when().delete("/reservations/1")
                 .then().log().all()
                 .statusCode(204);
 
         Integer countAfterDelete = jdbcTemplate.queryForObject("SELECT count(1) from reservation", Integer.class);
         assertThat(countAfterDelete).isEqualTo(0);
+    }
+
+    private SessionFilter createMemberAndLogin() {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
+                "user@test.com", "password", "사용자"
+        );
+        SessionFilter filter = new SessionFilter();
+        RestAssured.given()
+                .filter(filter)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "user@test.com", "password", "password"))
+                .when().post("/login/sessions")
+                .then().statusCode(200);
+        return filter;
     }
 }

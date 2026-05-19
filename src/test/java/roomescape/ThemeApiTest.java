@@ -2,6 +2,7 @@ package roomescape;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +23,19 @@ class ThemeApiTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    private Long memberId;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.update(
+                "INSERT INTO member (email, password, name) VALUES (?, ?, ?)",
+                "seed@test.com", "password", "시드"
+        );
+        memberId = jdbcTemplate.queryForObject(
+                "SELECT id FROM member WHERE email = ?", Long.class, "seed@test.com"
+        );
+    }
 
     @Test
     void 테마_조회_빈목록() {
@@ -212,8 +226,8 @@ class ThemeApiTest {
 
     private void createReservation(String name, String date, Integer timeId, Integer themeId) {
         jdbcTemplate.update(
-                "INSERT INTO reservation (name, date, time_id, theme_id) VALUES (?, ?, ?, ?)",
-                name, LocalDate.parse(date), timeId, themeId
+                "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)",
+                LocalDate.parse(date), timeId, themeId, memberId
         );
     }
 }

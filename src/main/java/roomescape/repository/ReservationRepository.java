@@ -27,5 +27,5 @@ public interface ReservationRepository {
 
     Reservations findByDateAndThemeId(LocalDate date, Long themeId);
 
-    List<Reservation> findByName(String name);
+    List<Reservation> findByMemberId(Long memberId);
 }
