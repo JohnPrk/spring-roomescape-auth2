@@ -57,6 +57,48 @@ async function fetchJson(url, options = {}) {
     return text ? JSON.parse(text) : null;
 }
 
+async function initAuthNav() {
+    const container = document.getElementById('nav-auth');
+    if (!container) return;
+
+    const response = await fetch('/members/me');
+    container.innerHTML = '';
+
+    if (response.ok) {
+        const me = await response.json();
+        const greeting = document.createElement('span');
+        greeting.className = 'nav-user';
+        greeting.textContent = `${me.name}님`;
+
+        const logoutButton = document.createElement('button');
+        logoutButton.type = 'button';
+        logoutButton.className = 'btn btn-ghost btn-sm';
+        logoutButton.textContent = '로그아웃';
+        logoutButton.addEventListener('click', logout);
+
+        container.appendChild(greeting);
+        container.appendChild(logoutButton);
+        return;
+    }
+
+    const loginLink = document.createElement('a');
+    loginLink.href = '/login';
+    loginLink.className = 'btn btn-primary btn-sm';
+    loginLink.textContent = '로그인';
+    container.appendChild(loginLink);
+}
+
+async function logout() {
+    try {
+        await fetch('/login/sessions', { method: 'DELETE' });
+    } catch (error) {
+        console.error('로그아웃 실패:', error);
+    }
+    location.href = '/';
+}
+
+document.addEventListener('DOMContentLoaded', initAuthNav);
+
 function getErrorMessage(error, fallback) {
     if (error instanceof HttpError) {
         const problem = error.problem;
