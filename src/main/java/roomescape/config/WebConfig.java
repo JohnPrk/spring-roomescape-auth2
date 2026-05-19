@@ -1,11 +1,28 @@
 package roomescape.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import roomescape.auth.AuthInterceptor;
+import roomescape.auth.LoginMemberArgumentResolver;
+
+import java.util.List;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    private final AuthInterceptor authInterceptor;
+    private final LoginMemberArgumentResolver loginMemberArgumentResolver;
+
+    public WebConfig(
+            AuthInterceptor authInterceptor,
+            LoginMemberArgumentResolver loginMemberArgumentResolver
+    ) {
+        this.authInterceptor = authInterceptor;
+        this.loginMemberArgumentResolver = loginMemberArgumentResolver;
+    }
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
@@ -18,5 +35,16 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addViewController("/admin/").setViewName("admin/index");
         registry.addViewController("/admin/theme").setViewName("admin/theme");
         registry.addViewController("/admin/time").setViewName("admin/time");
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/members/me");
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(loginMemberArgumentResolver);
     }
 }
