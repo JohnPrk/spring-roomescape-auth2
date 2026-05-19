@@ -31,6 +31,7 @@ public class DbTest {
             assertThat(connection.getMetaData().getTables(null, null, "RESERVATION", null).next()).isTrue();
             assertThat(connection.getMetaData().getTables(null, null, "RESERVATION_TIME", null).next()).isTrue();
             assertThat(connection.getMetaData().getTables(null, null, "THEME", null).next()).isTrue();
+            assertThat(connection.getMetaData().getTables(null, null, "MEMBER", null).next()).isTrue();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
