@@ -53,4 +53,10 @@ public class MemberJdbcRepository implements MemberRepository {
         List<Member> results = jdbcTemplate.query(sql, memberRowMapper, id);
         return results.stream().findFirst();
     }
+
+    public Optional<Member> findByEmail(String email) {
+        String sql = "SELECT id, email, password, name FROM member WHERE email = ?";
+        List<Member> results = jdbcTemplate.query(sql, memberRowMapper, email);
+        return results.stream().findFirst();
+    }
 }

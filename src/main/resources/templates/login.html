@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}">방탈출 예약</a>
+    <nav class="nav">
+        <a th:href="@{/}">홈</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="card" style="max-width: 420px; margin: 0 auto;">
+        <h1>로그인</h1>
+        <form id="login-form">
+            <label>
+                이메일
+                <input type="email" name="email" required>
+            </label>
+            <label>
+                비밀번호
+                <input type="password" name="password" required>
+            </label>
+            <button type="submit">로그인</button>
+            <p id="error-message" style="color: #c00; min-height: 1.2em;"></p>
+        </form>
+    </section>
+</main>
+<script th:src="@{/js/login.js}"></script>
+</body>
+</html>
