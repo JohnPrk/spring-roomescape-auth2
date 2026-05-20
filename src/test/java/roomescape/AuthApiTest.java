@@ -51,6 +51,24 @@ class AuthApiTest {
     }
 
     @Test
+    void 로그인_성공_시_응답_body에_accessToken이_포함된다() {
+        Map<String, String> body = Map.of(
+                "email", "user@test.com",
+                "password", "password"
+        );
+
+        String accessToken = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().post("/login/sessions")
+                .then().log().all()
+                .statusCode(200)
+                .extract().jsonPath().getString("accessToken");
+
+        assertThat(accessToken).isNotBlank();
+    }
+
+    @Test
     void 존재하지_않는_이메일이면_401() {
         Map<String, String> body = Map.of(
                 "email", "nobody@test.com",

@@ -1,6 +1,7 @@
 package roomescape.auth;
 
 import org.junit.jupiter.api.Test;
+import roomescape.support.TestAuthFixture;
 
 import java.util.Optional;
 
@@ -8,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TokenProviderTest {
 
-    private static final String SECRET = "spring-roomescape-auth-test-secret";
+    private static final String SECRET = TestAuthFixture.tokenSecret();
 
     @Test
     void 발급한_토큰을_resolve하면_같은_memberId가_나온다() {

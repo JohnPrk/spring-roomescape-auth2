@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.auth.TokenProvider;
 import roomescape.exception.ProblemType;
+import roomescape.support.TestAuthFixture;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,8 +21,6 @@ import static org.hamcrest.Matchers.notNullValue;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class MobileAuthApiTest {
-
-    private static final String SECRET = "spring-roomescape-auth-test-secret";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -100,7 +99,7 @@ class MobileAuthApiTest {
 
     @Test
     void 만료된_토큰으로_요청하면_401() {
-        TokenProvider expiredIssuer = new TokenProvider(SECRET, 0);
+        TokenProvider expiredIssuer = new TokenProvider(TestAuthFixture.tokenSecret(), 0);
         String expiredToken = expiredIssuer.issue(minwookId);
 
         RestAssured.given().log().all()
