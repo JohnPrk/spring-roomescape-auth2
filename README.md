@@ -180,3 +180,36 @@ RFC 9457 Problem Details 형식. `Content-Type: application/problem+json`.
 
 **(5) 성공 경로** (대조 케이스)
 - 로그인 → 동일 SessionFilter로 후속 요청 시 JSESSIONID 유지되며 200 / 본인 정보·예약 정상 응답 (`MemberApiTest:43`)
+
+## 선택 미션 - 2단계 (모바일 인증)
+
+### 선택 도구
+
+HMAC-SHA256 서명된 자체 액세스 토큰 + 세션/`Authorization` 헤더 통합 resolver.
+
+- 토큰 포맷: `{memberId}:{expiresAtEpochMs}:{hex_signature}`
+- 발급·검증: JDK 표준 `javax.crypto.Mac`만 사용 (외부 라이브러리 X)
+- 라우팅: `MemberIdResolver`가 세션 우선 → 없으면 `Authorization: Bearer <token>` 헤더로 폴백 → `AuthInterceptor` · `AdminInterceptor` · `LoginMemberArgumentResolver` 셋이 같은 헬퍼를 공유
+- 비밀키 · TTL은 `application.properties`의 `auth.token.secret` / `auth.token.ttl-minutes`로 외부화
+
+### 다른 후보
+
+- 표준 JWT 라이브러리 (jjwt, nimbus-jose-jwt 등)
+- Spring Security + Spring Security OAuth2 Resource Server
+- Access Token + Refresh Token 이중 토큰 구조
+- 서버 측 토큰 무효화 저장소 (블랙리스트 / 세션 ID 매핑)
+
+### 선택 이유
+
+- 미션 스코프가 Spring Security · JWT 라이브러리 풀스택 · OAuth2 풀스택을 명시적으로 제외함. 라이브러리 통합이 아니라 *인증의 책임 경계*를 직접 그어보는 게 학습 목적
+- JWT 라이브러리를 도입하면 토큰 포맷 협상 · 서명 · 검증 · 예외 매핑이 한 번에 블랙박스화됨. "왜 만료 시간이 필요한지", "왜 서명이 필요한지", "헤더 파싱과 세션 폴백을 어디서 합칠지" 같은 결정 지점을 못 만남
+- 만료 정책은 *만료 시간만* 으로 가장 단순한 형태를 선택. 서버 측 무효화 저장소를 두지 않은 대신 TTL과 HMAC 서명으로 변조·재사용을 차단
+- 세션 흐름(웹)을 그대로 두고 헤더 흐름(모바일)만 추가하기 위해 `MemberIdResolver` 하나를 추가하는 *최소 침습 리팩터*로 풀었음. 컨트롤러·인터셉터·ArgumentResolver는 웹/모바일을 구분하지 않음
+
+### 불편하거나 아쉬운 점
+
+- 토큰 시크릿을 `application.properties`와 테스트 픽스처(`TestAuthFixture`)에 평문으로 박아둘 수밖에 없어 키 회전 시 코드 동기화가 필요. 실제 운영이라면 환경 변수·KMS로 빼야 한다
+- 서버 측 무효화 저장소가 없어 *로그아웃 즉시 토큰 무효화*는 불가능. 세션은 `session.invalidate()`로 즉시 무효화되지만, 토큰은 클라이언트가 버려도 만료 시각까지는 서명만 맞으면 유효 (만료시간만 정책의 trade-off)
+- 토큰 포맷이 `{memberId}:{expiresAt}:{signature}`로 단순 문자열 분리에 의존. payload에 정보를 더 넣으려면 구분자 충돌·인코딩(Base64URL 등)을 직접 챙겨야 해서 확장성이 약함
+- 토큰에 `iat`(issued at) · `iss`(issuer) 같은 메타데이터가 없어 *언제 발급된 토큰인지* 서버 로그·디버깅에서 추적 불가
+- 만료 시각이 응답 body에 노출되지 않아 클라이언트가 토큰 만료를 *호출 후 401을 받고 나서야* 알 수 있음 (사전 재로그인 유도 불가)
