@@ -122,3 +122,61 @@ RFC 9457 Problem Details 형식. `Content-Type: application/problem+json`.
 | 415 | `media-type-not-supported` | 지원하지 않는 요청 미디어 타입 |
 | 422 | `business-rule-violation` | 지난 시각 예약/변경, 예약이 존재하는 시간·테마 삭제 |
 | 500 | `internal-error` | 처리되지 않은 예외 |
+
+## 선택 미션 - 1단계 (인증/인가)
+
+### 1. 로그인 상태 유지 방식
+
+- HTTP Session(JSESSIONID) 기반. 토큰 발급/검증을 직접 구현하지 않고 서블릿 세션을 그대로 사용
+- 로그인 성공 시 `AuthController`에서 `SessionStore.saveMemberId(session, member.getId())` 호출 → 세션에 memberId만 저장 (Member 객체 통째로 X)
+- 매 요청마다 브라우저가 보낸 JSESSIONID 쿠키로 세션 복원 → 세션에서 memberId 추출 → DB 재조회로 Member 확보
+- 로그아웃은 `DELETE /login/sessions`에서 `session.invalidate()`
+- 세션 키 문자열(`"memberId"`)은 `SessionStore` 내부에 private static final로 캡슐화 → 외부 패키지는 `saveMemberId` / `findMemberId` 행위로만 접근
+
+### 2. 인증이 필요한 API (`WebConfig.addInterceptors` 등록 패턴 기준)
+
+**로그인만 필요 (`AuthInterceptor`):**
+- `GET /members/me`
+- `POST /reservations`
+- `GET/PUT/DELETE /reservations/me/**`
+
+**관리자 권한까지 필요 (`AdminInterceptor`):**
+- `/admin/**` (예: `GET /admin/reservations`, `POST /admin/themes`, `POST /admin/times`)
+
+**무인증으로 열려 있는 것:**
+- `POST/DELETE /login/sessions` (로그인/로그아웃 자체)
+- `GET /themes`, `GET /themes/popular`, `GET /reservations/<date>/...` (가용 시간 조회) 등 공개 조회
+
+### 3. 공통 처리 위치
+
+- **인증 검사**: `AuthInterceptor.preHandle` — 세션에 memberId 있는지만 검사
+- **권한 검사**: `AdminInterceptor.preHandle` — 세션 → Member 조회 → `member.isAdmin()` 확인. 실패 시 401 / 403 분리
+- **컨트롤러 파라미터 주입**: `@LoginMember Member` 한 줄로 인증된 사용자를 받음. 처리는 `LoginMemberArgumentResolver`에 일원화 → 컨트롤러에 세션 코드 누출 없음
+- **브라우저 vs API 분기**: `BrowserRequest.isHtmlRequest`로 `Accept: text/html` 여부 판단 → HTML 요청이면 `/login?redirect=원본 URL`로 리다이렉트, JSON API 요청이면 `UnauthorizedException` throw
+- **예외 응답 포맷팅**: `UnauthorizedException` / `ForbiddenException`은 `GlobalExceptionHandler`가 RFC 7807 ProblemDetail로 변환
+
+즉 인증/인가는 인터셉터 두 개 + ArgumentResolver 하나에 모여 있고, 각 컨트롤러는 `@LoginMember Member`만 받으면 된다.
+
+### 4. 테스트한 인증 실패 상황
+
+**(1) 로그인 자체 실패** (`AuthApiTest`)
+- 존재하지 않는 이메일 → 401 + `ProblemType.UNAUTHORIZED`
+- 비밀번호 불일치 → 401 (동일 메시지로 사용자 존재 여부 노출 안 함)
+- 이메일 필드 누락 (validation) → 400 + `ProblemType.VALIDATION_ERROR`
+
+**(2) 미로그인 상태로 보호된 API 호출**
+- `GET /members/me` 미로그인 → 401 (`MemberApiTest:34`)
+- `POST /reservations` 미로그인 → 401 (`ReservationApiTest:298`)
+- `GET /reservations/me` 미로그인 → 401 (`ReservationApiTest:371`)
+- `GET /admin/reservations` 미로그인 → 401 (`ReservationApiTest:322`)
+
+**(3) 권한 부족** (인증은 됐지만 admin 아님)
+- 일반 사용자가 `GET /admin/reservations` → 403 + `ProblemType.FORBIDDEN` (`ReservationApiTest:312`)
+- 일반 사용자가 `DELETE /admin/reservations/{id}` → 403 (`ReservationApiTest:330`)
+
+**(4) 본인 자원 인가** (소유권 위반)
+- 다른 사용자가 남의 예약 취소 `DELETE /reservations/me/{id}` → 401 (`ReservationApiTest:399`)
+- 다른 사용자가 남의 예약 변경 `PUT /reservations/me/{id}` → 401 (`ReservationApiTest:473`)
+
+**(5) 성공 경로** (대조 케이스)
+- 로그인 → 동일 SessionFilter로 후속 요청 시 JSESSIONID 유지되며 200 / 본인 정보·예약 정상 응답 (`MemberApiTest:43`)
