@@ -8,24 +8,29 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import roomescape.auth.SessionStore;
+import roomescape.auth.TokenProvider;
 import roomescape.domain.Member;
 import roomescape.dto.LoginRequest;
+import roomescape.dto.LoginResponse;
 import roomescape.service.AuthService;
 
 @RestController
 public class AuthController {
 
     private final AuthService authService;
+    private final TokenProvider tokenProvider;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, TokenProvider tokenProvider) {
         this.authService = authService;
+        this.tokenProvider = tokenProvider;
     }
 
     @PostMapping("/login/sessions")
-    public ResponseEntity<Void> login(@RequestBody @Valid LoginRequest request, HttpSession session) {
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request, HttpSession session) {
         Member member = authService.login(request);
         SessionStore.saveMemberId(session, member.getId());
-        return ResponseEntity.ok().build();
+        String accessToken = tokenProvider.issue(member.getId());
+        return ResponseEntity.ok(new LoginResponse(accessToken));
     }
 
     @DeleteMapping("/login/sessions")

@@ -16,9 +16,11 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
 
     private static final String UNAUTHENTICATED = "로그인이 필요합니다.";
 
+    private final MemberIdResolver memberIdResolver;
     private final MemberRepository memberRepository;
 
-    public LoginMemberArgumentResolver(MemberRepository memberRepository) {
+    public LoginMemberArgumentResolver(MemberIdResolver memberIdResolver, MemberRepository memberRepository) {
+        this.memberIdResolver = memberIdResolver;
         this.memberRepository = memberRepository;
     }
 
@@ -36,7 +38,7 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
             WebDataBinderFactory binderFactory
     ) {
         HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
-        Long memberId = SessionStore.findMemberId(request.getSession(false));
+        Long memberId = memberIdResolver.resolve(request);
         if (memberId == null) {
             throw new UnauthorizedException(UNAUTHENTICATED);
         }

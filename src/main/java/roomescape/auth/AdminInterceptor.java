@@ -17,15 +17,17 @@ public class AdminInterceptor implements HandlerInterceptor {
     private static final String UNAUTHENTICATED = "로그인이 필요합니다.";
     private static final String NOT_ADMIN = "관리자 권한이 필요합니다.";
 
+    private final MemberIdResolver memberIdResolver;
     private final MemberRepository memberRepository;
 
-    public AdminInterceptor(MemberRepository memberRepository) {
+    public AdminInterceptor(MemberIdResolver memberIdResolver, MemberRepository memberRepository) {
+        this.memberIdResolver = memberIdResolver;
         this.memberRepository = memberRepository;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
-        Long memberId = SessionStore.findMemberId(request.getSession(false));
+        Long memberId = memberIdResolver.resolve(request);
         if (memberId == null) {
             if (BrowserRequest.isHtmlRequest(request)) {
                 response.sendRedirect(BrowserRequest.loginRedirectUrl(request));

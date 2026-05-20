@@ -13,9 +13,15 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private static final String UNAUTHENTICATED = "로그인이 필요합니다.";
 
+    private final MemberIdResolver memberIdResolver;
+
+    public AuthInterceptor(MemberIdResolver memberIdResolver) {
+        this.memberIdResolver = memberIdResolver;
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
-        if (SessionStore.findMemberId(request.getSession(false)) == null) {
+        if (memberIdResolver.resolve(request) == null) {
             if (BrowserRequest.isHtmlRequest(request)) {
                 response.sendRedirect(BrowserRequest.loginRedirectUrl(request));
                 return false;
