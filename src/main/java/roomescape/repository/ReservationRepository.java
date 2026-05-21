@@ -12,6 +12,10 @@ public interface ReservationRepository {
 
     long count();
 
+    List<Reservation> findAllByStoreId(Long storeId, int offset, int limit);
+
+    long countByStoreId(Long storeId);
+
     Reservation save(Reservation reservation);
 
     Reservation update(Reservation reservation);

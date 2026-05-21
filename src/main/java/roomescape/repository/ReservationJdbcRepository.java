@@ -89,6 +89,17 @@ public class ReservationJdbcRepository implements ReservationRepository {
         return count != null ? count : 0L;
     }
 
+    public List<Reservation> findAllByStoreId(Long storeId, int offset, int limit) {
+        String sql = SELECT_BASE + " WHERE r.store_id = ? ORDER BY r.date DESC, time_value ASC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, reservationRowMapper, storeId, limit, offset);
+    }
+
+    public long countByStoreId(Long storeId) {
+        String sql = "SELECT COUNT(*) FROM reservation WHERE store_id = ?";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, storeId);
+        return count != null ? count : 0L;
+    }
+
     public boolean existsByTimeId(Long timeId) {
         String sql = "SELECT COUNT(*) FROM reservation WHERE time_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, timeId);
