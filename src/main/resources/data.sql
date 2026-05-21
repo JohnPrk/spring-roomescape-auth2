@@ -76,66 +76,70 @@ INSERT INTO theme (name, description, thumbnail_image_url)
 VALUES ('은행 금고', '삼엄한 경비를 뚫고 금고에서 탈출하세요', 'https://loremflickr.com/800/600/bank,vault');
 
 -- reservation (모두 member_id = 2 사용자 소유)
+-- store_id 분포: ((theme_id - 1) % 3) + 1
+--   강남점(1): theme 1, 4, 7, 10
+--   홍대점(2): theme 2, 5, 8
+--   잠실점(3): theme 3, 6, 9
 -- 인기 테마 윈도우 (오늘=2026-05-06 기준, 어제부터 7일 = 2026-04-29 ~ 2026-05-05)
 -- 윈도우 내 카운트 목표:
 --   theme 1: 5건, theme 5: 4건, theme 8: 4건, theme 3: 3건, theme 4: 3건,
 --   theme 2: 2건, theme 7: 2건, theme 6: 1건, theme 9: 1건, theme 10: 1건
 
 -- 윈도우 내 (기존)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-05', 3, 1, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-05', 5, 2, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-04', 7, 3, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-04', 4, 1, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-03', 6, 5, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-03', 8, 4, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-02', 2, 7, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-05', 3, 1, 2, 1);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-05', 5, 2, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-04', 7, 3, 2, 3);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-04', 4, 1, 2, 1);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-03', 6, 5, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-03', 8, 4, 2, 1);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-02', 2, 7, 2, 1);
 
 -- 윈도우 내 (theme 1: +3건 → 총 5건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-04-29', 3, 1, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-04-30', 2, 1, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-01', 1, 1, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-04-29', 3, 1, 2, 1);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-04-30', 2, 1, 2, 1);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-01', 1, 1, 2, 1);
 
 -- 윈도우 내 (theme 5: +3건 → 총 4건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-05', 1, 5, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-04', 2, 5, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-02', 3, 5, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-05', 1, 5, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-04', 2, 5, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-02', 3, 5, 2, 2);
 
 -- 윈도우 내 (theme 8: +4건 → 총 4건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-04-30', 3, 8, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-01', 2, 8, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-03', 1, 8, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-05', 9, 8, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-04-30', 3, 8, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-01', 2, 8, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-03', 1, 8, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-05', 9, 8, 2, 2);
 
 -- 윈도우 내 (theme 3: +2건 → 총 3건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-02', 8, 3, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-05', 7, 3, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-02', 8, 3, 2, 3);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-05', 7, 3, 2, 3);
 
 -- 윈도우 내 (theme 4: +2건 → 총 3건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-01', 4, 4, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-04', 8, 4, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-01', 4, 4, 2, 1);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-04', 8, 4, 2, 1);
 
 -- 윈도우 내 (theme 2: +1건 → 총 2건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-04', 6, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-04', 6, 2, 2, 2);
 
 -- 윈도우 내 (theme 7: +1건 → 총 2건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-04-30', 5, 7, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-04-30', 5, 7, 2, 1);
 
 -- 윈도우 내 (theme 6: +1건 → 총 1건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-03', 4, 6, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-03', 4, 6, 2, 3);
 
 -- 윈도우 내 (theme 9: +1건 → 총 1건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-01', 5, 9, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-01', 5, 9, 2, 3);
 
 -- 윈도우 내 (theme 10: +1건 → 총 1건)
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-04-30', 6, 10, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-04-30', 6, 10, 2, 1);
 
 -- 윈도우 직전 (2026-04-28) — 카운트에 포함되면 안 됨
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-04-28', 7, 1, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-04-28', 7, 1, 2, 1);
 
 -- 오늘 (2026-05-06) — end가 어제(05-05)이므로 카운트에서 제외되어야 함
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-06', 8, 5, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-06', 8, 5, 2, 2);
 
 -- 미래 — 윈도우 밖
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-14', 9, 8, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-14', 5, 6, 2);
-INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES ('2026-05-15', 6, 10, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-14', 9, 8, 2, 2);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-14', 5, 6, 2, 3);
+INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES ('2026-05-15', 6, 10, 2, 1);
