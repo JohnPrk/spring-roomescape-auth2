@@ -2,6 +2,7 @@ package roomescape.support;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
+import roomescape.domain.Store;
 
 import java.util.Map;
 
@@ -10,6 +11,10 @@ public final class StoreFixture {
     private static final String DEFAULT_STORE_NAME = "테스트 강남점";
 
     private StoreFixture() {
+    }
+
+    public static Store anyStore() {
+        return new Store(null, DEFAULT_STORE_NAME);
     }
 
     public static Long insertDefaultStore(JdbcTemplate jdbcTemplate) {
