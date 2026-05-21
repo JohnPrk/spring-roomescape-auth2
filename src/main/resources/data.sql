@@ -11,6 +11,16 @@ INSERT INTO member (email, password, name, role)
 VALUES ('admin@test.com', 'password', '어드민', 'ADMIN');
 INSERT INTO member (email, password, name, role)
 VALUES ('user@test.com', 'password', '사용자', 'USER');
+INSERT INTO member (email, password, name, role)
+VALUES ('manager.gangnam@test.com', 'password', '강남점 매니저', 'MANAGER');
+INSERT INTO member (email, password, name, role)
+VALUES ('manager.hongdae@test.com', 'password', '홍대점 매니저', 'MANAGER');
+
+-- store_manager (매니저-매장 1:1 할당)
+INSERT INTO store_manager (member_id, store_id)
+VALUES (3, 1);
+INSERT INTO store_manager (member_id, store_id)
+VALUES (4, 2);
 
 -- reservation_time
 INSERT INTO reservation_time (start_at)

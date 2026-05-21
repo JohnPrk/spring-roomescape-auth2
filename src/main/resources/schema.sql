@@ -16,6 +16,15 @@ CREATE TABLE member
     UNIQUE (email)
 );
 
+CREATE TABLE store_manager
+(
+    member_id BIGINT NOT NULL,
+    store_id  BIGINT NOT NULL,
+    PRIMARY KEY (member_id),
+    FOREIGN KEY (member_id) REFERENCES member (id),
+    FOREIGN KEY (store_id) REFERENCES store (id)
+);
+
 CREATE TABLE reservation_time
 (
     id       BIGINT       NOT NULL AUTO_INCREMENT,

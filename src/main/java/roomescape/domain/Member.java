@@ -48,6 +48,10 @@ public class Member {
         return role == Role.ADMIN;
     }
 
+    public boolean isManager() {
+        return role == Role.MANAGER;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
