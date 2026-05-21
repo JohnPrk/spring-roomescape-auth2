@@ -6,13 +6,15 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import roomescape.domain.ReservationTime;
+import roomescape.exception.NotFoundException;
 
 import java.sql.PreparedStatement;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public class ReservationTimeJdbcRepository implements ReservationTimeRepository {
+
+    private static final String TIME_NOT_FOUND_FORMAT = "존재하지 않는 예약 시간입니다. (ID: %d)";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -53,10 +55,12 @@ public class ReservationTimeJdbcRepository implements ReservationTimeRepository 
         return count != null && count > 0;
     }
 
-    public Optional<ReservationTime> findById(Long id) {
+    public ReservationTime findById(Long id) {
         String sql = "SELECT * FROM reservation_time WHERE id = ?";
         List<ReservationTime> results = jdbcTemplate.query(sql, timeRowMapper, id);
-        return results.stream().findFirst();
+        return results.stream()
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(TIME_NOT_FOUND_FORMAT.formatted(id)));
     }
 }
 

@@ -6,6 +6,7 @@ import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
 import roomescape.domain.Role;
+import roomescape.domain.Store;
 import roomescape.domain.Theme;
 
 import java.time.LocalDate;
@@ -20,10 +21,11 @@ class ReservationsTest {
     private static final ReservationTime TIME_10 = new ReservationTime(1L, LocalTime.of(10, 0));
     private static final ReservationTime TIME_11 = new ReservationTime(2L, LocalTime.of(11, 0));
     private static final Member ANY_MEMBER = new Member(1L, "user@test.com", "password", "브라운", Role.USER);
+    private static final Store ANY_STORE = new Store(1L, "강남점");
 
     @Test
     void 예약된_시간은_occupied_true를_반환한다() {
-        Reservation reservation = new Reservation(ANY_MEMBER, LocalDate.of(2026, 8, 5), TIME_10, THEME);
+        Reservation reservation = new Reservation(ANY_MEMBER, LocalDate.of(2026, 8, 5), TIME_10, THEME, ANY_STORE);
         Reservations reservations = new Reservations(List.of(reservation));
 
         assertThat(reservations.isOccupied(TIME_10)).isTrue();
@@ -31,7 +33,7 @@ class ReservationsTest {
 
     @Test
     void 예약되지_않은_시간은_occupied_false를_반환한다() {
-        Reservation reservation = new Reservation(ANY_MEMBER, LocalDate.of(2026, 8, 5), TIME_10, THEME);
+        Reservation reservation = new Reservation(ANY_MEMBER, LocalDate.of(2026, 8, 5), TIME_10, THEME, ANY_STORE);
         Reservations reservations = new Reservations(List.of(reservation));
 
         assertThat(reservations.isOccupied(TIME_11)).isFalse();

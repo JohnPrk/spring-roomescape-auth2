@@ -10,16 +10,19 @@ import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
 import roomescape.domain.Role;
+import roomescape.domain.Store;
 import roomescape.domain.Theme;
+import roomescape.exception.NotFoundException;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public class ReservationJdbcRepository implements ReservationRepository {
+
+    private static final String RESERVATION_NOT_FOUND_FORMAT = "ID %d번 예약을 찾을 수 없습니다.";
 
     private static final String SELECT_BASE = """
             SELECT r.id as reservation_id, r.date,
@@ -29,11 +32,13 @@ public class ReservationJdbcRepository implements ReservationRepository {
                    th.thumbnail_image_url as theme_thumbnail,
                    m.id as member_id, m.email as member_email,
                    m.password as member_password, m.name as member_name,
-                   m.role as member_role
+                   m.role as member_role,
+                   s.id as store_id, s.name as store_name
             FROM reservation as r
             INNER JOIN reservation_time as t ON r.time_id = t.id
             INNER JOIN theme as th ON r.theme_id = th.id
             INNER JOIN member as m ON r.member_id = m.id
+            INNER JOIN store as s ON r.store_id = s.id
             """;
 
     private final JdbcTemplate jdbcTemplate;
@@ -60,12 +65,17 @@ public class ReservationJdbcRepository implements ReservationRepository {
                 rs.getString("member_name"),
                 Role.valueOf(rs.getString("member_role"))
         );
+        Store store = new Store(
+                rs.getLong("store_id"),
+                rs.getString("store_name")
+        );
         return new Reservation(
                 rs.getLong("reservation_id"),
                 member,
                 rs.getDate("date").toLocalDate(),
                 time,
-                theme
+                theme,
+                store
         );
     };
 
@@ -92,7 +102,7 @@ public class ReservationJdbcRepository implements ReservationRepository {
     }
 
     public Reservation save(Reservation reservation) {
-        String sql = "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
@@ -101,6 +111,7 @@ public class ReservationJdbcRepository implements ReservationRepository {
             ps.setLong(2, reservation.getTime().getId());
             ps.setLong(3, reservation.getTheme().getId());
             ps.setLong(4, reservation.getMember().getId());
+            ps.setLong(5, reservation.getStore().getId());
             return ps;
         }, keyHolder);
 
@@ -110,7 +121,8 @@ public class ReservationJdbcRepository implements ReservationRepository {
                 reservation.getMember(),
                 reservation.getDate(),
                 reservation.getTime(),
-                reservation.getTheme()
+                reservation.getTheme(),
+                reservation.getStore()
         );
     }
 
@@ -130,10 +142,12 @@ public class ReservationJdbcRepository implements ReservationRepository {
         jdbcTemplate.update("DELETE FROM reservation WHERE id = ?", id);
     }
 
-    public Optional<Reservation> findById(Long id) {
+    public Reservation findById(Long id) {
         String sql = SELECT_BASE + " WHERE r.id = ?";
         List<Reservation> results = jdbcTemplate.query(sql, reservationRowMapper, id);
-        return results.stream().findFirst();
+        return results.stream()
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(RESERVATION_NOT_FOUND_FORMAT.formatted(id)));
     }
 
     public Reservations findByDateAndThemeId(LocalDate date, Long themeId) {

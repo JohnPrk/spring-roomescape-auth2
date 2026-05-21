@@ -6,14 +6,16 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import roomescape.domain.Theme;
+import roomescape.exception.NotFoundException;
 
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public class ThemeJdbcRepository implements ThemeRepository {
+
+    private static final String THEME_NOT_FOUND_FORMAT = "존재하지 않는 테마입니다. (ID: %d)";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -54,10 +56,12 @@ public class ThemeJdbcRepository implements ThemeRepository {
         jdbcTemplate.update("DELETE FROM theme WHERE id = ?", id);
     }
 
-    public Optional<Theme> findById(Long id) {
+    public Theme findById(Long id) {
         String sql = "SELECT * FROM theme WHERE id = ?";
         List<Theme> results = jdbcTemplate.query(sql, themeRowMapper, id);
-        return results.stream().findFirst();
+        return results.stream()
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(THEME_NOT_FOUND_FORMAT.formatted(id)));
     }
 
     public List<Theme> getPopularThemes(LocalDate start, LocalDate end, Integer limit) {

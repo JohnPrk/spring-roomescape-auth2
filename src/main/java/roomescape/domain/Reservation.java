@@ -10,28 +10,32 @@ public class Reservation {
     private final LocalDate date;
     private final ReservationTime time;
     private final Theme theme;
+    private final Store store;
 
     public Reservation(
             Long id,
             Member member,
             LocalDate date,
             ReservationTime time,
-            Theme theme
+            Theme theme,
+            Store store
     ) {
         this.id = id;
         this.member = member;
         this.date = date;
         this.time = time;
         this.theme = theme;
+        this.store = store;
     }
 
     public Reservation(
             Member member,
             LocalDate date,
             ReservationTime time,
-            Theme theme
+            Theme theme,
+            Store store
     ) {
-        this(null, member, date, time, theme);
+        this(null, member, date, time, theme, store);
     }
 
     public Long getId() {
@@ -52,6 +56,10 @@ public class Reservation {
 
     public Theme getTheme() {
         return theme;
+    }
+
+    public Store getStore() {
+        return store;
     }
 
     public boolean isPast(LocalDateTime now) {

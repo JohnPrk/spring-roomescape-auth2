@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.domain.Member;
 import roomescape.domain.ReservationTime;
@@ -15,6 +16,7 @@ import roomescape.exception.ConflictException;
 import roomescape.repository.MemberRepository;
 import roomescape.service.ReservationTimeService;
 import roomescape.service.ThemeService;
+import roomescape.support.StoreFixture;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -37,11 +39,16 @@ class ReservationFacadeTest {
     @Autowired
     private MemberRepository memberRepository;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private Member member;
+    private Long storeId;
 
     @BeforeEach
     void setUp() {
         member = memberRepository.save(new Member(null, "user@test.com", "password", "브라운", Role.USER));
+        storeId = StoreFixture.insertDefaultStore(jdbcTemplate);
     }
 
     @Test
@@ -49,7 +56,7 @@ class ReservationFacadeTest {
         ReservationTime time = reservationTimeService.addTime(new ReservationTime(null, LocalTime.of(10, 0)));
         Theme theme = themeService.addTheme(new Theme(null, "공포", "무서운 테마", "https://example.com/horror.jpg"));
         reservationFacade.addReservation(
-                new ReservationRequest(LocalDate.of(2026, 8, 5), time.getId(), theme.getId()),
+                new ReservationRequest(LocalDate.of(2026, 8, 5), time.getId(), theme.getId(), storeId),
                 member
         );
 
@@ -62,7 +69,7 @@ class ReservationFacadeTest {
         ReservationTime time = reservationTimeService.addTime(new ReservationTime(null, LocalTime.of(10, 0)));
         Theme theme = themeService.addTheme(new Theme(null, "공포", "무서운 테마", "https://example.com/horror.jpg"));
         reservationFacade.addReservation(
-                new ReservationRequest(LocalDate.of(2026, 8, 5), time.getId(), theme.getId()),
+                new ReservationRequest(LocalDate.of(2026, 8, 5), time.getId(), theme.getId(), storeId),
                 member
         );
 
@@ -74,7 +81,7 @@ class ReservationFacadeTest {
     void 같은_날짜_시간_테마에_중복_예약시_예외가_발생한다() {
         ReservationTime time = reservationTimeService.addTime(new ReservationTime(null, LocalTime.of(10, 0)));
         Theme theme = themeService.addTheme(new Theme(null, "공포", "무서운 테마", "https://example.com/horror.jpg"));
-        ReservationRequest request = new ReservationRequest(LocalDate.of(2026, 8, 5), time.getId(), theme.getId());
+        ReservationRequest request = new ReservationRequest(LocalDate.of(2026, 8, 5), time.getId(), theme.getId(), storeId);
 
         reservationFacade.addReservation(request, member);
 
@@ -88,7 +95,7 @@ class ReservationFacadeTest {
         Theme theme = themeService.addTheme(new Theme(null, "공포", "무서운 테마", "https://example.com/horror.jpg"));
         LocalDate yesterday = LocalDate.now().minusDays(1);
 
-        ReservationRequest request = new ReservationRequest(yesterday, time.getId(), theme.getId());
+        ReservationRequest request = new ReservationRequest(yesterday, time.getId(), theme.getId(), storeId);
 
         assertThatThrownBy(() -> reservationFacade.addReservation(request, member))
                 .isInstanceOf(BusinessRuleViolationException.class);

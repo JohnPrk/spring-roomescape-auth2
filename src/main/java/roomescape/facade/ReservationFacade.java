@@ -6,12 +6,14 @@ import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
+import roomescape.domain.Store;
 import roomescape.domain.Theme;
 import roomescape.dto.ReservationRequest;
 import roomescape.dto.ReservationUpdateRequest;
 import roomescape.dto.TimeWithStatusResponse;
 import roomescape.exception.BusinessRuleViolationException;
 import roomescape.exception.ConflictException;
+import roomescape.repository.StoreRepository;
 import roomescape.service.ReservationService;
 import roomescape.service.ReservationTimeService;
 import roomescape.service.ThemeService;
@@ -33,15 +35,18 @@ public class ReservationFacade {
     private final ReservationService reservationService;
     private final ReservationTimeService reservationTimeService;
     private final ThemeService themeService;
+    private final StoreRepository storeRepository;
 
     public ReservationFacade(
             ReservationService reservationService,
             ReservationTimeService reservationTimeService,
-            ThemeService themeService
+            ThemeService themeService,
+            StoreRepository storeRepository
     ) {
         this.reservationService = reservationService;
         this.reservationTimeService = reservationTimeService;
         this.themeService = themeService;
+        this.storeRepository = storeRepository;
     }
 
     @Transactional
@@ -64,12 +69,14 @@ public class ReservationFacade {
     public Reservation addReservation(ReservationRequest request, Member member) {
         ReservationTime reservationTime = reservationTimeService.findById(request.timeId());
         Theme theme = themeService.findById(request.themeId());
+        Store store = storeRepository.findById(request.storeId());
 
         Reservation reservation = new Reservation(
                 member,
                 request.date(),
                 reservationTime,
-                theme
+                theme,
+                store
         );
 
         if (reservation.isPast(LocalDateTime.now())) {
@@ -100,7 +107,8 @@ public class ReservationFacade {
                 existing.getMember(),
                 request.date(),
                 newTime,
-                existing.getTheme()
+                existing.getTheme(),
+                existing.getStore()
         );
 
         if (updated.isPast(now)) {

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import roomescape.support.StoreFixture;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +24,7 @@ public class TimeTest {
     private JdbcTemplate jdbcTemplate;
 
     private SessionFilter adminSession;
+    private Long storeId;
 
     @BeforeEach
     void setUp() {
@@ -30,6 +32,7 @@ public class TimeTest {
                 "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
                 "admin@test.com", "password", "어드민", "ADMIN"
         );
+        storeId = StoreFixture.insertDefaultStore(jdbcTemplate);
         adminSession = login("admin@test.com", "password");
     }
 
@@ -89,6 +92,7 @@ public class TimeTest {
         reservation.put("date", "2099-12-31");
         reservation.put("timeId", 1);
         reservation.put("themeId", 1);
+        reservation.put("storeId", storeId);
 
         RestAssured.given().log().all()
                 .filter(userSession)

@@ -3,11 +3,13 @@ package roomescape;
 import io.restassured.RestAssured;
 import io.restassured.filter.session.SessionFilter;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import roomescape.support.StoreFixture;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -23,6 +25,13 @@ public class DbTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    private Long storeId;
+
+    @BeforeEach
+    void setUp() {
+        storeId = StoreFixture.insertDefaultStore(jdbcTemplate);
+    }
 
     @Test
     void 데이터베이스_연동() {
@@ -50,8 +59,8 @@ public class DbTest {
         Long themeId = jdbcTemplate.queryForObject("SELECT id from theme limit 1", Long.class);
         Long memberId = jdbcTemplate.queryForObject("SELECT id from member limit 1", Long.class);
         jdbcTemplate.update(
-                "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)",
-                "2023-08-05", timeId, themeId, memberId
+                "INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES (?, ?, ?, ?, ?)",
+                "2023-08-05", timeId, themeId, memberId, storeId
         );
 
         List<Map> reservations = RestAssured.given().log().all()
@@ -82,6 +91,7 @@ public class DbTest {
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
         params.put("themeId", themeId);
+        params.put("storeId", storeId);
 
         RestAssured.given().log().all()
                 .filter(userSession)

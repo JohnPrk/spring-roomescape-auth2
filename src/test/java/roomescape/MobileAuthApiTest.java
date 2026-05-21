@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.auth.TokenProvider;
 import roomescape.exception.ProblemType;
+import roomescape.support.StoreFixture;
 import roomescape.support.TestAuthFixture;
 
 import java.util.HashMap;
@@ -26,11 +27,13 @@ class MobileAuthApiTest {
     private JdbcTemplate jdbcTemplate;
 
     private Long minwookId;
+    private Long storeId;
 
     @BeforeEach
     void setUp() {
         minwookId = insertMember("minwook@test.com", "password", "민욱", "USER");
         insertMember("admin@test.com", "password", "어드민", "ADMIN");
+        storeId = StoreFixture.insertDefaultStore(jdbcTemplate);
     }
 
     @Test
@@ -56,6 +59,7 @@ class MobileAuthApiTest {
         body.put("date", "2026-08-05");
         body.put("timeId", timeId);
         body.put("themeId", themeId);
+        body.put("storeId", storeId);
 
         RestAssured.given().log().all()
                 .header("Authorization", "Bearer " + userToken)

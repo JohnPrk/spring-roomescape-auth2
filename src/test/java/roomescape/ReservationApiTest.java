@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.exception.ProblemType;
+import roomescape.support.StoreFixture;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ class ReservationApiTest {
     private SessionFilter admin;
     private Long minwookId;
     private Long tinueId;
+    private Long storeId;
 
     @BeforeEach
     void setUp() {
@@ -39,6 +41,7 @@ class ReservationApiTest {
         minwook = login("minwook@test.com", "password");
         tinue = login("tinue@test.com", "password");
         admin = login("admin@test.com", "password");
+        storeId = StoreFixture.insertDefaultStore(jdbcTemplate);
     }
 
     @Test
@@ -206,6 +209,7 @@ class ReservationApiTest {
         Map<String, Object> params = new HashMap<>();
         params.put("date", "2026-08-05");
         params.put("themeId", themeId);
+        params.put("storeId", storeId);
 
         RestAssured.given().log().all()
                 .filter(minwook)
@@ -610,6 +614,7 @@ class ReservationApiTest {
         params.put("date", date);
         params.put("timeId", timeId);
         params.put("themeId", themeId);
+        params.put("storeId", storeId);
         return params;
     }
 
@@ -625,8 +630,8 @@ class ReservationApiTest {
 
     private Long insertPastReservation(Long memberId, String date, Integer timeId, Integer themeId) {
         jdbcTemplate.update(
-                "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)",
-                LocalDate.parse(date), timeId, themeId, memberId
+                "INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES (?, ?, ?, ?, ?)",
+                LocalDate.parse(date), timeId, themeId, memberId, storeId
         );
         return jdbcTemplate.queryForObject(
                 "SELECT id FROM reservation WHERE member_id = ? AND date = ?",

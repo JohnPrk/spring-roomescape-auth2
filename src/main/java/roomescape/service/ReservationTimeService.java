@@ -3,7 +3,6 @@ package roomescape.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.ReservationTime;
-import roomescape.exception.NotFoundException;
 import roomescape.repository.ReservationTimeRepository;
 
 import java.util.List;
@@ -11,8 +10,6 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class ReservationTimeService {
-
-    private static final String NOT_FOUND_RESERVATION_TIME = "존재하지 않는 예약 시간입니다. (ID: %d)";
 
     private final ReservationTimeRepository timeRepository;
 
@@ -25,8 +22,7 @@ public class ReservationTimeService {
     }
 
     public ReservationTime findById(Long id) {
-        return timeRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(String.format(NOT_FOUND_RESERVATION_TIME, id)));
+        return timeRepository.findById(id);
     }
 
     @Transactional

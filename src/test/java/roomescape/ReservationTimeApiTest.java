@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import roomescape.exception.ProblemType;
+import roomescape.support.StoreFixture;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ class ReservationTimeApiTest {
     private JdbcTemplate jdbcTemplate;
 
     private Long memberId;
+    private Long storeId;
     private SessionFilter admin;
     private SessionFilter user;
 
@@ -44,6 +46,7 @@ class ReservationTimeApiTest {
                 "INSERT INTO member (email, password, name, role) VALUES (?, ?, ?, ?)",
                 "admin@test.com", "password", "어드민", "ADMIN"
         );
+        storeId = StoreFixture.insertDefaultStore(jdbcTemplate);
         admin = login("admin@test.com", "password");
         user = login("seed@test.com", "password");
     }
@@ -289,8 +292,8 @@ class ReservationTimeApiTest {
 
     private void createReservation(String name, String date, Integer timeId, Integer themeId) {
         jdbcTemplate.update(
-                "INSERT INTO reservation (date, time_id, theme_id, member_id) VALUES (?, ?, ?, ?)",
-                LocalDate.parse(date), timeId, themeId, memberId
+                "INSERT INTO reservation (date, time_id, theme_id, member_id, store_id) VALUES (?, ?, ?, ?, ?)",
+                LocalDate.parse(date), timeId, themeId, memberId, storeId
         );
     }
 }
