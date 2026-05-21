@@ -1,3 +1,11 @@
+-- store
+INSERT INTO store (name)
+VALUES ('강남점');
+INSERT INTO store (name)
+VALUES ('홍대점');
+INSERT INTO store (name)
+VALUES ('잠실점');
+
 -- member
 INSERT INTO member (email, password, name, role)
 VALUES ('admin@test.com', 'password', '어드민', 'ADMIN');
