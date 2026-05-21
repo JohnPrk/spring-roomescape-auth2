@@ -7,7 +7,7 @@ import roomescape.domain.Reservation;
 import roomescape.domain.Reservations;
 import roomescape.dto.ReservationResponses;
 import roomescape.exception.BusinessRuleViolationException;
-import roomescape.exception.UnauthorizedException;
+import roomescape.exception.ForbiddenException;
 import roomescape.repository.ReservationRepository;
 
 import java.time.LocalDate;
@@ -45,7 +45,7 @@ public class ReservationService {
     public Reservation findMyReservation(Long id, Member member) {
         Reservation reservation = reservationRepository.findById(id);
         if (!reservation.isOwnedBy(member)) {
-            throw new UnauthorizedException(NOT_OWNER);
+            throw new ForbiddenException(NOT_OWNER);
         }
         return reservation;
     }

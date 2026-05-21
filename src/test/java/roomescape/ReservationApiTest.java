@@ -400,7 +400,7 @@ class ReservationApiTest {
     }
 
     @Test
-    void 다른_사용자로_본인_예약을_취소하면_401() {
+    void 다른_사용자로_본인_예약을_취소하면_403() {
         Integer timeId = createTime("13:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
         Integer reservationId = createReservation(minwook, "2026-08-05", timeId, themeId);
@@ -409,7 +409,8 @@ class ReservationApiTest {
                 .filter(tinue)
                 .when().delete("/reservations/me/" + reservationId)
                 .then().log().all()
-                .statusCode(401);
+                .statusCode(403)
+                .body("type", is(ProblemType.FORBIDDEN.uri().toString()));
     }
 
     @Test
@@ -474,7 +475,7 @@ class ReservationApiTest {
     }
 
     @Test
-    void 다른_사용자로_본인_예약을_변경하면_401() {
+    void 다른_사용자로_본인_예약을_변경하면_403() {
         Integer timeId = createTime("13:00");
         Integer newTimeId = createTime("15:00");
         Integer themeId = createTheme("공포", "무서운 테마", "https://example.com/horror.jpg");
@@ -490,8 +491,8 @@ class ReservationApiTest {
                 .body(body)
                 .when().put("/reservations/me/" + reservationId)
                 .then().log().all()
-                .statusCode(401)
-                .body("type", is(ProblemType.UNAUTHORIZED.uri().toString()));
+                .statusCode(403)
+                .body("type", is(ProblemType.FORBIDDEN.uri().toString()));
     }
 
     @Test
